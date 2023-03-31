@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build the Docker image
+    - name: Build tests homework1 hello_lib
       run: |
         cd hello_lib 
-        docker build --file Dockerfile --tag hello_world:$(date +%s)
+        docker build --tag hello_world:$(date +%s) .
