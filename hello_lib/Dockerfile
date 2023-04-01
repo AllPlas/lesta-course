@@ -5,11 +5,12 @@ RUN apt update && \
     cmake \
     ninja-build \
     python3-pip && \
-    pip3 install conan==1.59.0
+    pip3 install conan
 
 
 COPY conanfile.txt /home/user/app/
 RUN mkdir /home/user/app/build && cd /home/user/app/build && \
+    conan profile detect \
     conan install .. --build=missing -s build_type=Release -s compiler.libcxx=libstdc++11
 
 COPY CMakeLists.txt /home/user/app/
