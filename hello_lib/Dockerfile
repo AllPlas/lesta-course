@@ -11,7 +11,7 @@ RUN apt update && \
 COPY conanfile.txt /home/user/app/
 RUN mkdir /home/user/app/build && cd /home/user/app/build && \
     conan profile detect && \
-    conan install .. --build=missing -s build_type=Release -s compiler.libcxx=libstdc++11
+    conan install .. --build=missing --output-folder=. -s build_type=Release -s compiler.libcxx=libstdc++11
 
 COPY CMakeLists.txt /home/user/app/
 COPY hello_bin /home/user/app/hello_bin
