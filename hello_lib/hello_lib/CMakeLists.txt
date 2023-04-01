@@ -12,7 +12,7 @@ add_library(hello_lib_shared SHARED include/hello.h src/hello.cpp)
 target_include_directories(hello_lib_shared PUBLIC include)
 
 if (EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
-    include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+    set(CMAKE_TOOLCHAIN_FILE:FILEPATH conan_toolchain.cmake)
 endif ()
 
 find_package(Catch2)
