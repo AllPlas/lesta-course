@@ -12,7 +12,7 @@ target_include_directories(hello_lib_static PUBLIC include)
 add_library(hello_lib_shared SHARED include/hello.h src/hello.cpp)
 target_include_directories(hello_lib_shared PUBLIC include)
 
-find_package(Catch2 REQUIRED)
+find_package(Catch2)
 if (Catch2_FOUND)
     add_executable(hello_lib_tests tests/hello_lib_tests.cpp)
     target_link_libraries(hello_lib_tests PRIVATE Catch2::Catch2WithMain hello_lib_static)
