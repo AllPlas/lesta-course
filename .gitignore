@@ -51,6 +51,7 @@
 cmake-build-*/
 build-*/
 build*/
+CMakeUserPresets.json
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
