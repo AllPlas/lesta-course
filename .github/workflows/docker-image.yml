@@ -16,4 +16,7 @@ jobs:
     - name: Build tests homework1 hello_lib
       run: |
         cd hello_lib 
-        docker build --tag hello_world:$(date +%s) .
+        docker build -t hello_world .
+    - name: Run tests homework1 hello_lib
+      run: |
+        docker run hello_world
