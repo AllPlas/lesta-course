@@ -18,5 +18,8 @@ jobs:
         cd hello_lib 
         mkdir build
         cd build
-        cmake ..
+        pip install conan
+        conan profile detect
+        conan install .. --build=missing --output-folder=.
+        cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build .
