@@ -1,4 +1,4 @@
-name: mac_build
+name: macos
 
 on:
   pull_request:
@@ -13,6 +13,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install ninja
+      run: |
+        brew install ninja
+
+    - name: Build tests hello_world
+      run: |
+        cd hello_world
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
+
+    - name: Run tests hello_world
+      run: |
+        cd hello_world/build
+        ctest --output-on-failure
+
     - name: Build tests hello_lib
       run: |
         cd hello_lib 
@@ -21,7 +38,7 @@ jobs:
         pip3 install conan
         conan profile detect
         conan install .. --build=missing --output-folder=. -s compiler.cppstd=20
-        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
         cmake --build .
     - name: Run tests hello_lib
       run: |
