@@ -12,5 +12,8 @@ if (NOT APPLE)
 endif ()
 target_link_libraries(hello_world_static PRIVATE hello_lib_static)
 
+
 add_executable(hello_world_shared src/main.cpp)
 target_link_libraries(hello_world_shared PRIVATE hello_lib_shared)
+set_target_properties(hello_world_shared PROPERTIES INSTALL_RPATH
+                               ${CMAKE_CURRENT_LIST_DIR}/../../../bin/install)
