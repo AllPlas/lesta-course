@@ -15,3 +15,4 @@ target_link_libraries(hello_world_static PRIVATE hello_lib_static)
 
 add_executable(hello_world_shared src/main.cpp)
 target_link_libraries(hello_world_shared PRIVATE hello_lib_shared)
+link_directories(${CMAKE_BINARY_DIR}/hello_lib)
