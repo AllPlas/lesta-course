@@ -1,0 +1,29 @@
+name: mac_build
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build tests hello_lib
+      run: |
+        cd hello_lib 
+        mkdir build
+        cd build
+        pip3 install conan
+        conan profile detect
+        conan install .. --build=missing --output-folder=. -s compiler.cppstd=20
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
+    - name: Run tests hello_lib
+      run: |
+        cd hello_lib/build/hello_lib
+        ctest --output-on-failure
