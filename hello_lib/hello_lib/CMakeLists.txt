@@ -21,3 +21,8 @@ if (Catch2_FOUND)
     include(Catch)
     catch_discover_tests(hello_lib_tests)
 endif ()
+
+install(TARGETS hello_lib_static hello_lib_shared
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static)
+install(DIRECTORY include/ DESTINATION include)
