@@ -12,32 +12,54 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build tests hello_world
-      run: |
-        cd hello_world
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build . --config Release
-    
-    - name: Run tests hello_world
-      run: |
-        cd hello_world/build
-        ctest -C Release --output-on-failure
+      - uses: actions/checkout@v3
+      - name: Build tests hello_world
+        run: |
+          cd hello_world
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
 
-    - name: Build tests hello_lib
-      run: |
-        cd hello_lib 
-        mkdir build
-        cd build
-        pip3 install conan
-        conan profile detect
-        conan install .. --build=missing --output-folder=. -s compiler.cppstd=20 -s compiler.runtime=static
-        cmake ..
-        cmake --build . --config Release
+      - name: Run tests hello_world
+        run: |
+          cd hello_world/build
+          ctest -C Release --output-on-failure
 
-    - name: Run tests hello_lib
-      run: |
-        cd hello_lib/build/hello_lib
-        ctest -C Release --output-on-failure
+      - name: Build tests hello_lib
+        run: |
+          cd hello_lib 
+          mkdir build
+          cd build
+          pip3 install conan
+          conan profile detect
+          conan install .. --build=missing --output-folder=. -s compiler.cppstd=20 -s compiler.runtime=static
+          cmake ..
+          cmake --build . --config Release
+
+      - name: Run tests hello_lib
+        run: |
+          cd hello_lib/build/hello_lib
+          ctest -C Release --output-on-failure
+
+      - name: Install SDL3
+        run: |
+          git clone https://github.com/libsdl-org/SDL.git
+          cd SDL
+          mkdir build
+          cd build
+          cmake -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON ..
+          cmake --build . --config Release
+          cmake --install . --config Release
+
+      - name: Build tests sdl_shared
+        run: |
+          cd sdl-shared
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+
+      - name: Run tests sdl_shared
+        run: |
+          cd sdl-shared
