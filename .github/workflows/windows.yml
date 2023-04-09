@@ -24,7 +24,7 @@ jobs:
     - name: Run tests hello_world
       run: |
         cd hello_world/build
-        ctest --output-on-failure
+        ctest -C Release --output-on-failure
 
     - name: Build tests hello_lib
       run: |
