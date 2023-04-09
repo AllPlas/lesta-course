@@ -1,4 +1,4 @@
-name: win_build
+name: win
 
 on:
   pull_request:
@@ -13,6 +13,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Build tests hello_world
+      run: |
+        cd hello_world
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
+    
+    - name: Run tests hello_world
+      run: |
+        cd hello_world/build
+        ctest --output-on-failure
+
     - name: Build tests hello_lib
       run: |
         cd hello_lib 
@@ -23,6 +36,7 @@ jobs:
         conan install .. --build=missing --output-folder=. -s compiler.cppstd=20 -s compiler.runtime=static
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build .
+
     - name: Run tests hello_lib
       run: |
         cd hello_lib/build/hello_lib

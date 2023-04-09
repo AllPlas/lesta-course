@@ -1,4 +1,4 @@
-name: autotests
+name: docker-ubuntu
 
 on:
   pull_request:
@@ -17,6 +17,7 @@ jobs:
       run: |
         cd hello_lib 
         docker build -t hello_world .
+        
     - name: Run tests homework1 hello_lib
       run: |
         docker run hello_world

@@ -1,4 +1,4 @@
-name: macos
+name: mac
 
 on:
   pull_request:
@@ -40,6 +40,7 @@ jobs:
         conan install .. --build=missing --output-folder=. -s compiler.cppstd=20
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
         cmake --build .
+        
     - name: Run tests hello_lib
       run: |
         cd hello_lib/build/hello_lib
