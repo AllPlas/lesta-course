@@ -63,3 +63,8 @@ jobs:
         cd build
         cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
         cmake --build .
+
+    - name: Run tests sdl_shared
+      run: |
+        cd sdl-shared
+        ./build/sdl_shared | python3 tests/test.py
