@@ -8,14 +8,16 @@ std::ostream& operator<<(std::ostream& out, const SDL_version& version) {
 }
 
 int main() {
+  using namespace std::literals;
+
   SDL_version compiled{};
   SDL_version linked{};
 
   SDL_VERSION(&compiled);
   SDL_GetVersion(&linked);
 
-  std::cout << "compiled: " << compiled << '\n';
-  std::cout << "linked: " << linked << std::endl;
+  std::cout << "compiled: "sv << compiled << '\n';
+  std::cout << "linked: "sv << linked << std::endl;
 
   return std::cout.good() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
