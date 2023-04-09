@@ -63,3 +63,17 @@ jobs:
       - name: Run tests sdl_shared
         run: |
           cd sdl-shared
+          build/Release/sdl_shared.exe | python tests/test.py
+
+      - name: Build tests sdl_static
+        run: |
+          cd sdl-static
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+
+      - name: Run tests sdl_static
+        run: |
+          cd sdl-static
+          build/Release/sdl_static.exe | python tests/test.py
