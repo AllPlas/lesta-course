@@ -68,3 +68,16 @@ jobs:
       run: |
         cd sdl-shared
         ./build/sdl_shared | python3 tests/test.py
+
+    - name: Build tests sdl_static
+      run: |
+        cd sdl-static
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
+
+    - name: Run tests sdl_static
+      run: |
+        cd sdl-static
+        ./build/sdl_static | python3 tests/test.py
