@@ -40,4 +40,4 @@ jobs:
     - name: Run tests hello_lib
       run: |
         cd hello_lib/build/hello_lib
-        ctest --output-on-failure
+        ctest -C Release --output-on-failure
