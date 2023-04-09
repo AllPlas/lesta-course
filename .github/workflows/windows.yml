@@ -18,8 +18,8 @@ jobs:
         cd hello_world
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
+        cmake ..
+        cmake --build . --config Release
     
     - name: Run tests hello_world
       run: |
@@ -34,8 +34,8 @@ jobs:
         pip3 install conan
         conan profile detect
         conan install .. --build=missing --output-folder=. -s compiler.cppstd=20 -s compiler.runtime=static
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
+        cmake ..
+        cmake --build . --config Release
 
     - name: Run tests hello_lib
       run: |
