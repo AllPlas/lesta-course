@@ -12,72 +12,72 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install ninja
-      run: |
-        brew install ninja
+      - uses: actions/checkout@v3
+      - name: Install ninja
+        run: |
+          brew install ninja
 
-    - name: Build tests hello_world
-      run: |
-        cd hello_world
-        mkdir build
-        cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
+      - name: Build tests hello_world
+        run: |
+          cd hello_world
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build .
 
-    - name: Run tests hello_world
-      run: |
-        cd hello_world/build
-        ctest --output-on-failure
+      - name: Run tests hello_world
+        run: |
+          cd hello_world/build
+          ctest --output-on-failure
 
-    - name: Build tests hello_lib
-      run: |
-        cd hello_lib 
-        mkdir build
-        cd build
-        pip3 install conan
-        conan profile detect
-        conan install .. --build=missing --output-folder=. -s compiler.cppstd=20
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
-        
-    - name: Run tests hello_lib
-      run: |
-        cd hello_lib/build/hello_lib
-        ctest --output-on-failure
+      - name: Build tests hello_lib
+        run: |
+          cd hello_lib 
+          mkdir build
+          cd build
+          pip3 install conan
+          conan profile detect
+          conan install .. --build=missing --output-folder=. -s compiler.cppstd=20
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build .
 
-    - name: Install SDL3
-      run: |
-        git clone https://github.com/libsdl-org/SDL.git
-        cd SDL
-        mkdir build
-        cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON ..
-        cmake --build .
-        cmake --install .
+      - name: Run tests hello_lib
+        run: |
+          cd hello_lib/build/hello_lib
+          ctest --output-on-failure
 
-    - name: Build tests sdl_shared
-      run: |
-        cd sdl-shared
-        mkdir build
-        cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
+      - name: Install SDL3
+        run: |
+          git clone https://github.com/libsdl-org/SDL.git
+          cd SDL
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON ..
+          cmake --build .
+          cmake --install .
 
-    - name: Run tests sdl_shared
-      run: |
-        cd sdl-shared
-        ./build/sdl_shared | python3 tests/test.py
+      - name: Build tests sdl_shared
+        run: |
+          cd sdl-shared
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build .
 
-    - name: Build tests sdl_static
-      run: |
-        cd sdl-static
-        mkdir build
-        cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build .
+      - name: Run tests sdl_shared
+        run: |
+          cd sdl-shared
+          ./build/sdl_shared | python3 tests/test.py
 
-    - name: Run tests sdl_static
-      run: |
-        cd sdl-static
-        ./build/sdl_static | python3 tests/test.py
+      - name: Build tests sdl_static
+        run: |
+          cd sdl-static
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build .
+
+      - name: Run tests sdl_static
+        run: |
+          cd sdl-static
+          ./build/sdl_static | python3 tests/test.py
