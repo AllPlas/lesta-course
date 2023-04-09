@@ -45,3 +45,21 @@ jobs:
       run: |
         cd hello_lib/build/hello_lib
         ctest --output-on-failure
+
+    - name: Install SDL3
+      run: |
+        git clone https://github.com/libsdl-org/SDL.git
+        cd SDL
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON ..
+        cmake --build .
+        cmake --install .
+
+    - name: Build tests sdl_shared
+      run: |
+        cd sdl-shared
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build .
