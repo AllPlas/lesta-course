@@ -8,4 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 REQUIRED)
 
 add_executable(sdl_static src/main.cpp)
+if (NOT APPLE)
+    target_link_options(sdl_static PRIVATE -static)
+endif ()
 target_link_libraries(sdl_static PRIVATE SDL3::SDL3-static)
