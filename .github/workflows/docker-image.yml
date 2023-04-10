@@ -20,7 +20,7 @@ jobs:
 
       - name: Run tests hello_world
         run: |
-          docker run --rm -it hello_world
+          docker run --rm hello_world
 
       - name: Build tests hello_lib
         run: |
@@ -29,4 +29,4 @@ jobs:
 
       - name: Run tests hello_lib
         run: |
-          docker run --rm -it hello_lib
+          docker run --rm hello_lib
