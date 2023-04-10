@@ -12,12 +12,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build tests homework1 hello_lib
-      run: |
-        cd hello_lib 
-        docker build -t hello_world .
-        
-    - name: Run tests homework1 hello_lib
-      run: |
-        docker run hello_world
+      - uses: actions/checkout@v3
+      - name: Build tests hello_world
+        run: |
+          cd hello_world
+          docker build -t hello_world .
+
+      - name: Run tests hello_world
+        run: |
+          docker run --rm -it hello_world
+
+      - name: Build tests hello_lib
+        run: |
+          cd hello_lib 
+          docker build -t hello_lib .
+
+      - name: Run tests hello_lib
+        run: |
+          docker run --rm -it hello_lib
