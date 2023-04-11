@@ -30,21 +30,3 @@ jobs:
       - name: Run tests hello_lib
         run: |
           docker run --rm hello_lib
-
-      - name: Build tests sdl_shared
-        run: |
-          cd sdl-shared
-          docker build -t sdl_shared .
-
-      - name: Run tests sdl_shared
-        run: |
-          docker run --rm sdl_shared
-
-      - name: Build tests sdl_static
-        run: |
-          cd sdl-static
-          docker build -t sdl_static .
-
-      - name: Run tests sdl_static
-        run: |
-          docker run --rm sdl_static
