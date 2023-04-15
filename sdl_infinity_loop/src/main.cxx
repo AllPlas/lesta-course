@@ -39,9 +39,9 @@ void checkKeyboardInput(SDL_Event& e) {
 
   if (auto found{ keymap.find(e.key.keysym.sym) }; found != keymap.end()) {
     if (e.type == SDL_EVENT_KEY_DOWN)
-      std::cout << found->second << " pressed\n";
+      std::cout << found->second << " pressed\n"sv;
     else if (e.type == SDL_EVENT_KEY_UP)
-      std::cout << found->second << " released\n";
+      std::cout << found->second << " released\n"sv;
   }
 }
 
