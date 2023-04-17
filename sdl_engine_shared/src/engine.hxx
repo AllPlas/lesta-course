@@ -4,8 +4,10 @@
 
 #ifndef SDL_ENGINE_STATIC_ENGINE_HXX
 #define SDL_ENGINE_STATIC_ENGINE_HXX
+#include <iosfwd>
 #include <string_view>
 #include <string>
+#include <memory>
 
 enum class Event
 {
@@ -34,12 +36,13 @@ class IEngine
 {
 public:
   virtual ~IEngine();
-  virtual std::string initialize(std::string_view config) = 0;
+  virtual std::string initialize([[maybe_unused]] std::string_view config) = 0;
   virtual void uninitialize() = 0;
   virtual bool readInput(Event& event) = 0;
 };
 
-IEngine* createEngine();
-void destroyEngine(IEngine* e);
+std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine();
+// IEngine* createEngine();
+// void destroyEngine(IEngine* e);
 
 #endif  // SDL_ENGINE_STATIC_ENGINE_HXX

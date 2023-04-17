@@ -1,14 +1,13 @@
 #include <iostream>
-#include <memory>
 #include <functional>
+
 #include "engine.hxx"
 
 using namespace std::literals;
 
 int main() {
   try {
-    std::unique_ptr<IEngine, std::function<void(IEngine * engine)>> engine{ createEngine(),
-                                                                            destroyEngine };
+    auto engine{ createEngine() };
     engine->initialize("");
 
     bool isEnd{};

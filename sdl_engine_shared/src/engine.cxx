@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <optional>
+#include <functional>
 #include <SDL3/SDL.h>
 
 using namespace std::literals;
@@ -70,7 +71,7 @@ private:
 public:
   EngineImpl() = default;
 
-  std::string initialize([[maybe_unused]] std::string_view config) override {
+  std::string initialize(std::string_view config) override {
     initSDL();
     m_window = createWindow();
     return "";
@@ -128,14 +129,21 @@ private:
 
 static bool s_alreadyExist{ false };
 
-IEngine* createEngine() {
+// IEngine* createEngine() {
+//   if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
+//   s_alreadyExist = true;
+//   return new EngineImpl{};
+// }
+
+std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine() {
   if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
   s_alreadyExist = true;
-  return new EngineImpl{};
+  return { new EngineImpl{}, destroyEngine };
 }
 
 void destroyEngine(IEngine* e) {
   if (!s_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
   if (e == nullptr) throw std::runtime_error{ "Error : nullptr"s };
   delete e;
+  s_alreadyExist = false;
 }
