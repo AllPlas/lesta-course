@@ -16,3 +16,14 @@ target_link_libraries(engine PRIVATE SDL3::SDL3-shared)
 
 add_executable(game src/main.cxx)
 target_link_libraries(game PRIVATE engine)
+
+if (WIN32)
+    add_custom_command(TARGET game POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3-shared>
+            $<TARGET_FILE_DIR:game>
+
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:engine>
+            $<TARGET_FILE_DIR:game>)
+endif ()
