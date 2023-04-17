@@ -148,7 +148,8 @@ static std::unique_ptr<IGame, std::function<void(IGame* game)>> reloadGame(
     std::string_view tempLibraryName, IEngine& engine, void*& oldHandle) {
   if (oldGame) {
     auto ptr{ oldGame.release() };
-    destroyGame(ptr);
+    // destroyGame(ptr);
+    delete ptr;
     SDL_UnloadObject(oldHandle);
   }
 
@@ -173,7 +174,7 @@ static std::unique_ptr<IGame, std::function<void(IGame* game)>> reloadGame(
 
   auto createGameLinked{ reinterpret_cast<CreateGame>(&createGameFuncPtr) };
 
-  return { createGameLinked(&engine), destroyGame };
+  return { createGameLinked(&engine), [](IGame* game) { delete game; } };
 }
 
 int main() {

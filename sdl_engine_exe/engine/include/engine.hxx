@@ -57,6 +57,6 @@ public:
 };
 
 extern "C" IGame* createGame(IEngine* engine);
-extern "C" void destroyGame(IGame* game);
+// extern "C" void destroyGame(IGame* game);
 
 #endif  // SDL_ENGINE_EXE_ENGINE_HXX
