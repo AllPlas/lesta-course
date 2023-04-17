@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <optional>
-#include <functional>
 #include <SDL3/SDL.h>
 
 using namespace std::literals;

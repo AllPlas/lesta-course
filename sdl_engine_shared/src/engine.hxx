@@ -8,6 +8,7 @@
 #include <string_view>
 #include <string>
 #include <memory>
+#include <functional>
 
 enum class Event
 {
