@@ -16,3 +16,10 @@ set_target_properties(
 
 target_include_directories(engine PUBLIC include)
 target_link_libraries(engine PRIVATE SDL3::SDL3-shared)
+
+if (WIN32)
+    add_custom_command(TARGET engine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3-shared>
+            $<TARGET_FILE_DIR:engine>)
+endif ()
