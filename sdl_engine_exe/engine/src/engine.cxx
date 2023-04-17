@@ -171,8 +171,7 @@ static std::unique_ptr<IGame, std::function<void(IGame* game)>> reloadGame(
   }
 
   using CreateGame = decltype(&createGame);
-
-  auto createGameLinked{ reinterpret_cast<CreateGame>(&createGameFuncPtr) };
+  auto createGameLinked{ reinterpret_cast<CreateGame>(createGameFuncPtr) };
 
   return { createGameLinked(&engine), [](IGame* game) { delete game; } };
 }
