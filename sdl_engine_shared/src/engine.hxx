@@ -43,6 +43,6 @@ public:
 
 std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine();
 // IEngine* createEngine();
-// void destroyEngine(IEngine* e);
+void destroyEngine(IEngine* e);
 
 #endif  // SDL_ENGINE_STATIC_ENGINE_HXX
