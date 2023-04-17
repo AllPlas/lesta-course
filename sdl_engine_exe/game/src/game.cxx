@@ -2,6 +2,7 @@
 #include <array>
 #include <thread>
 #include <iostream>
+#include <iomanip>
 #include <engine.hxx>
 
 using namespace std::literals;
@@ -9,24 +10,35 @@ using namespace std::literals;
 class ConsoleGame : public IGame
 {
 private:
-  uint32_t rotation_index = 0;
-  const std::array<char, 4> rotations_chars{ '-', '/', '|', '\\' };
+  int m_percent{};
+  char m_symbol{ '#' };
+  std::string m_loadingPanel{};
+
+  struct Config
+  {
+    Config() = delete;
+    inline static constexpr int maxPercent{ 100 };
+    inline static constexpr int difPercentStrSize{ 2 };
+  };
 
 public:
   void initialize() override {}
   void onEvent(Event event) override {}
 
   void update() override {
-    using namespace std;
-    ++rotation_index;
-    rotation_index %= rotations_chars.size();
-    using namespace std::chrono;
-    std::this_thread::sleep_for(milliseconds(40));
+    if (m_percent == Config::maxPercent) {
+      m_loadingPanel.clear();
+      m_percent = 0;
+    }
+    m_loadingPanel += m_symbol;
+    m_percent += Config::difPercentStrSize;
+    std::this_thread::sleep_for(100ms);
   }
 
   void render() const override {
-    const char current_symbol = rotations_chars.at(rotation_index);
-    std::cout << "\b" << current_symbol << std::flush;
+    std::system("clear || cls");
+    std::cout << '[' << std::setw(Config::maxPercent / Config::difPercentStrSize) << std::left
+              << m_loadingPanel << "]  "sv << m_percent << '%' << std::endl;
   }
 };
 
