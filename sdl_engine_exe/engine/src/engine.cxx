@@ -6,6 +6,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <stdexcept>
+#include <future>
 #include <optional>
 #include <thread>
 #include <filesystem>
@@ -190,9 +191,13 @@ int main() {
     game->initialize();
 
     bool isEnd{};
+    auto updateResult{ std::async(std::launch::async, &IGame::update, game.get()) };
     while (!isEnd) {
       auto currentWriteTime{ fs::last_write_time(libraryName) };
       if (currentWriteTime != timeDuringLoading) {
+        std::cout << "waiting...\n"sv;
+        updateResult.get();
+
         while (true) {
           std::this_thread::sleep_for(100ms);
           auto nextWriteTime{ fs::last_write_time(libraryName) };
@@ -220,6 +225,7 @@ int main() {
         std::cout << event << '\n';
 
         if (event == Event::turn_off) {
+          std::cout << "exiting..."sv << std::endl;
           isEnd = true;
           break;
         }
@@ -228,8 +234,13 @@ int main() {
       }
 
       if (event == Event::turn_off) break;
-      game->update();
-      game->render();
+      if (!updateResult.valid())
+        updateResult = std::async(std::launch::async, &IGame::update, game.get());
+      else if (updateResult.wait_for(0s) == std::future_status::ready) {
+        // game->update();
+        game->render();
+        updateResult = std::async(std::launch::async, &IGame::update, game.get());
+      }
     }
 
     engine->uninitialize();
