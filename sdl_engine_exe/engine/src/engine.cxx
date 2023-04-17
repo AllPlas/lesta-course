@@ -222,7 +222,7 @@ int main() {
 
       Event event{};
       while (engine->readInput(event)) {
-        std::cout << event << '\n';
+        // std::cout << event << '\n';
 
         if (event == Event::turn_off) {
           std::cout << "exiting..."sv << std::endl;
