@@ -227,6 +227,7 @@ int main() {
         game->onEvent(event);
       }
 
+      if (event == Event::turn_off) break;
       game->update();
       game->render();
     }
