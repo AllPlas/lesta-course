@@ -47,7 +47,7 @@ IGame* createGame(IEngine* engine) {
   return new ConsoleGame{};
 }
 
-// void destroyGame(IGame* game) {
-//   if (game == nullptr) throw std::runtime_error{ "Error : destroyGame : game is nullptr"s };
-//   delete game;
-// }
+void destroyGame(IGame* game) {
+  if (game == nullptr) throw std::runtime_error{ "Error : destroyGame : game is nullptr"s };
+  delete game;
+}

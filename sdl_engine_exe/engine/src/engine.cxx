@@ -148,9 +148,7 @@ static std::unique_ptr<IGame, std::function<void(IGame* game)>> reloadGame(
     std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame, std::string_view libraryName,
     std::string_view tempLibraryName, IEngine& engine, void*& oldHandle) {
   if (oldGame) {
-    auto ptr{ oldGame.release() };
-    // destroyGame(ptr);
-    delete ptr;
+    oldGame.reset(nullptr);
     SDL_UnloadObject(oldHandle);
   }
 
@@ -167,14 +165,24 @@ static std::unique_ptr<IGame, std::function<void(IGame* game)>> reloadGame(
 
   auto createGameFuncPtr{ SDL_LoadFunction(gameHandle, "createGame") };
   if (createGameFuncPtr == nullptr) {
-    std::cerr << "Failed SDL_LoadFunction\n"sv;
+    std::cerr << "Failed : SDL_LoadFunction : createGame\n"sv;
     return nullptr;
   }
 
   using CreateGame = decltype(&createGame);
   auto createGameLinked{ reinterpret_cast<CreateGame>(createGameFuncPtr) };
 
-  return { createGameLinked(&engine), [](IGame* game) { delete game; } };
+  auto destroyGameFuncPtr{ SDL_LoadFunction(gameHandle, "destroyGame") };
+  if (destroyGameFuncPtr == nullptr) {
+    std::cerr << "Failed : SDL_LoadFunction : destroyGame\n"sv;
+    return nullptr;
+  }
+
+  using DestroyGame = decltype(&destroyGame);
+  auto destroyGameLinked{ reinterpret_cast<DestroyGame>(destroyGameFuncPtr) };
+
+  return { createGameLinked(&engine),
+           [destroyGameLinked](IGame* game) { destroyGameLinked(game); } };
 }
 
 int main() {
