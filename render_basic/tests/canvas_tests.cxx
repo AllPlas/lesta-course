@@ -37,8 +37,7 @@ void plainColorTest(graphics::Color color) {
 
     REQUIRE(fs::exists(filename));
 
-    std::for_each(
-        canvas.begin(), canvas.end(), [](graphics::Color& c) { c = {}; });
+    canvas.clear();
 
     CHECK_THAT(canvas.getPixels(),
                AllMatch(Predicate<graphics::Color>([](const graphics::Color c) {
