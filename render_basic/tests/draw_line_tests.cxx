@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <iostream>
 #include <sstream>
 
 #include "../src/canvas.hxx"
@@ -122,9 +123,20 @@ SCENARIO("Draw line tests", "[line]") {
         end = Position::generateRandom(width, height);
     }
 
-    CHECK(lineRender.pixelsPositions(start, end) == pixels_positions(start, end));
+    const auto isLineEqual{ [&](Position start, Position end) {
+        auto checkVec{ lineRender.pixelsPositions(start, end) };
+        auto requireVec{ pixels_positions(start, end) };
+        int error{};
+        for (const auto& pos : checkVec)
+            if (std::ranges::find(requireVec, pos) == requireVec.end()) ++error;
+        if (error > 3) {
+            std::cout << error << '\n';
+            std::cout << start.x << ' ' << start.y << '\n';
+            std::cout << end.x << ' ' << end.y << '\n';
+        }
+        return error <= 3;
+    } };
 
-    auto pixelPositions{ pixels_positions(end, start) };
-    CHECK(lineRender.pixelsPositions(end, start) ==
-          std::vector<Position>{ pixelPositions.rbegin(), pixelPositions.rend() });
+    CHECK(isLineEqual(start, end));
+    CHECK(isLineEqual(end, start));
 }

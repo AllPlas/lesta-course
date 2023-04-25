@@ -54,6 +54,31 @@ public:
             }
         }
 
+        // standard
+        //        std::int64_t error{ dx > dy ? dx / 2 : dy / 2 };
+        //        if (dx > dy) {
+        //            while (x0 != x1) {
+        //                positions.emplace_back(x0, y0);
+        //                x0 += sx;
+        //                error -= dy;
+        //                if (error < 0) {
+        //                    y0 += sy;
+        //                    error += dx;
+        //                }
+        //            }
+        //        }
+        //        else {
+        //            while (y0 != y1) {
+        //                positions.emplace_back(x0, y0);
+        //                y0 += sy;
+        //                error -= dx;
+        //                if (error < 0) {
+        //                    x0 += sx;
+        //                    error += dy;
+        //                }
+        //            }
+        //        }
+
         positions.emplace_back(x0, y0); // отрезок включая последнюю точку [start, end]
 
         return positions;
