@@ -5,9 +5,11 @@
 #ifndef RENDER_BASIC_CANVAS_HXX
 #define RENDER_BASIC_CANVAS_HXX
 
+#include <algorithm>
 #include <compare>
 #include <cstdint>
 #include <fstream>
+#include <ranges>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -85,6 +87,10 @@ public:
 
     [[nodiscard]] Color getPixel(std::size_t x, std::size_t y) const noexcept {
         return m_pixels.at(y * m_width + x);
+    }
+
+    void clear(Color color = {}) {
+        std::ranges::for_each(m_pixels, [color](Color& c) { c = color; });
     }
 
     [[nodiscard]] const Pixels& getPixels() const noexcept { return m_pixels; }
