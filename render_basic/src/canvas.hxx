@@ -89,9 +89,7 @@ public:
         return m_pixels.at(y * m_width + x);
     }
 
-    void clear(Color color = {}) {
-        std::ranges::for_each(m_pixels, [color](Color& c) { c = color; });
-    }
+    void clear(Color color = {}) { std::ranges::fill(m_pixels, color); }
 
     [[nodiscard]] const Pixels& getPixels() const noexcept { return m_pixels; }
     [[nodiscard]] std::size_t getWidth() const noexcept { return m_width; }
