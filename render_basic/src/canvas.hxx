@@ -9,6 +9,7 @@
 #include <compare>
 #include <cstdint>
 #include <fstream>
+#include <random>
 #include <ranges>
 #include <stdexcept>
 #include <string_view>
@@ -40,11 +41,25 @@ static std::ofstream& operator<<(std::ofstream& out, const Pixels& pixels) {
 }
 
 static std::ifstream& operator>>(std::ifstream& in, Pixels& pixels) {
-    in.read(reinterpret_cast<char*>(pixels.data()),
-            pixels.size() * sizeof(Pixels::value_type));
-
+    in.read(reinterpret_cast<char*>(pixels.data()), pixels.size() * sizeof(Pixels::value_type));
     return in;
 }
+
+struct Position
+{
+    std::size_t x{};
+    std::size_t y{};
+
+    auto operator<=>(const Position& position) const = default;
+
+    static Position generateRandom(std::size_t width, std::size_t height) {
+        static std::mt19937_64 engine{ std::random_device{}() };
+        std::uniform_int_distribution<std::size_t> randX{ 0, width - 1 };
+        std::uniform_int_distribution<std::size_t> randY{ 0, height - 1 };
+
+        return { randX(engine), randY(engine) };
+    }
+};
 
 class Canvas
 {
@@ -70,23 +85,20 @@ public:
         std::string header{};
         std::string colorFormat{};
         char ws{};
-        in >> header >> m_width >> m_height >> colorFormat >> std::noskipws >>
-            ws;
+        in >> header >> m_width >> m_height >> colorFormat >> std::noskipws >> ws;
         if (!std::iswspace(ws))
-            throw std::runtime_error{
-                "Error : loadImage : bad load image from file"s
-            };
+            throw std::runtime_error{ "Error : loadImage : bad load image from file"s };
 
         m_pixels.resize(m_width * m_height);
         in >> m_pixels;
     }
 
-    void setPixel(std::size_t x, std::size_t y, Color color) {
-        m_pixels.at(y * m_width + x) = color;
+    void setPixel(Position position, Color color) {
+        m_pixels.at(position.y * m_width + position.x) = color;
     }
 
-    [[nodiscard]] Color getPixel(std::size_t x, std::size_t y) const noexcept {
-        return m_pixels.at(y * m_width + x);
+    [[nodiscard]] Color getPixel(Position position) const noexcept {
+        return m_pixels.at(position.y * m_width + position.x);
     }
 
     void clear(Color color = {}) { std::ranges::fill(m_pixels, color); }
@@ -100,6 +112,17 @@ public:
 
     auto operator<=>(const Canvas& canvas) const = default;
 };
+
+using Positions = std::vector<Position>;
+
+class IRender
+{
+public:
+    virtual ~IRender() = default;
+
+    virtual Positions pixelsPositions(Position start, Position end) const = 0;
+};
+
 } // namespace graphics
 
 #endif // RENDER_BASIC_CANVAS_HXX
