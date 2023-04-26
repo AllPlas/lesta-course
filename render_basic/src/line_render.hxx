@@ -24,7 +24,7 @@ public:
         : m_canvas{ canvas }, m_width{ width }, m_height{ height } {}
 
     [[nodiscard]] PixelsPositions pixelsPositions(graphics::Position start,
-                                            graphics::Position end) const override {
+                                                  graphics::Position end) const override {
         PixelsPositions positions;
 
         std::int64_t x0 = start.x;
@@ -69,8 +69,8 @@ public:
 
     void drawLine(Position start, Position end, Color color) {
         auto positions{ pixelsPositions(start, end) };
-        std::ranges::for_each(
-            positions, [&](const Position& position) { m_canvas.setPixel(position, color); });
+        std::ranges::for_each(positions,
+                              [&](const Position position) { m_canvas.setPixel(position, color); });
     }
 };
 
