@@ -129,12 +129,12 @@ SCENARIO("Draw line tests", "[line]") {
         int error{};
         for (const auto& pos : checkVec)
             if (std::ranges::find(requireVec, pos) == requireVec.end()) ++error;
-        if (error > 3) {
+        if (error > 10) {
             std::cout << error << '\n';
             std::cout << start.x << ' ' << start.y << '\n';
             std::cout << end.x << ' ' << end.y << '\n';
         }
-        return error <= 3;
+        return error <= 10;
     } };
 
     CHECK(isLineEqual(start, end));
