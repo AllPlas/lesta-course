@@ -88,7 +88,7 @@ SCENARIO("Draw line tests", "[line]") {
     constexpr std::size_t width{ 640 };
     constexpr std::size_t height{ 480 };
     Canvas canvas{ width, height };
-    LineRender lineRender{ width, height, canvas };
+    LineRender lineRender{ canvas, width, height };
 
     Position start{};
     Position end{};

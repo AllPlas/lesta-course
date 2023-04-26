@@ -15,13 +15,13 @@ namespace graphics {
 class LineRender : public IRender
 {
 private:
+    Canvas& m_canvas;
     std::size_t m_width{};
     std::size_t m_height{};
-    Canvas& m_canvas;
 
 public:
-    LineRender(std::size_t width, std::size_t height, Canvas& canvas)
-        : m_width{ width }, m_height{ height }, m_canvas{ canvas } {}
+    LineRender(Canvas& canvas, std::size_t width, std::size_t height)
+        : m_canvas{ canvas }, m_width{ width }, m_height{ height } {}
 
     [[nodiscard]] Positions pixelsPositions(graphics::Position start,
                                             graphics::Position end) const override {
