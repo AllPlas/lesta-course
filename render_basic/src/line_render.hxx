@@ -38,46 +38,29 @@ public:
         int sx{ x0 < x1 ? 1 : -1 };
         int sy{ y0 < y1 ? 1 : -1 };
 
-        std::int64_t error{ dx - dy };
-        while (x0 != x1 || y0 != y1) {
-            positions.emplace_back(x0, y0);
-            std::int64_t err2{ 2 * error };
-
-            if (err2 > -dy) {
-                error -= dy;
+        std::int64_t error{ dx > dy ? dx / 2 : dy / 2 };
+        if (dx > dy) {
+            while (x0 != x1) {
+                positions.emplace_back(x0, y0);
                 x0 += sx;
-            }
-
-            if (err2 < dx) {
-                error += dx;
-                y0 += sy;
+                error -= dy;
+                if (error < 0) {
+                    y0 += sy;
+                    error += dx;
+                }
             }
         }
-
-        // standard
-        //        std::int64_t error{ dx > dy ? dx / 2 : dy / 2 };
-        //        if (dx > dy) {
-        //            while (x0 != x1) {
-        //                positions.emplace_back(x0, y0);
-        //                x0 += sx;
-        //                error -= dy;
-        //                if (error < 0) {
-        //                    y0 += sy;
-        //                    error += dx;
-        //                }
-        //            }
-        //        }
-        //        else {
-        //            while (y0 != y1) {
-        //                positions.emplace_back(x0, y0);
-        //                y0 += sy;
-        //                error -= dx;
-        //                if (error < 0) {
-        //                    x0 += sx;
-        //                    error += dy;
-        //                }
-        //            }
-        //        }
+        else {
+            while (y0 != y1) {
+                positions.emplace_back(x0, y0);
+                y0 += sy;
+                error -= dx;
+                if (error < 0) {
+                    x0 += sx;
+                    error += dy;
+                }
+            }
+        }
 
         positions.emplace_back(x0, y0); // отрезок включая последнюю точку [start, end]
 
