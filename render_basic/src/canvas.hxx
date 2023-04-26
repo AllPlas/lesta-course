@@ -26,6 +26,12 @@ struct Color
     std::uint8_t blue{};
 
     auto operator<=>(const Color& color) const = default;
+
+    static Color generateRandom() {
+        static std::mt19937_64 engine{ std::random_device{}() };
+        std::uniform_int_distribution<std::uint8_t> rand{ 0, 255 };
+        return { rand(engine), rand(engine), rand(engine) };
+    }
 };
 
 inline constexpr Color red{ 255, 0, 0 };
@@ -52,8 +58,10 @@ struct Position
 
     auto operator<=>(const Position& position) const = default;
 
-    static Position generateRandom(std::size_t width, std::size_t height) {
-        static std::mt19937_64 engine{ std::random_device{}() };
+    static Position generateRandom(std::size_t width,
+                                   std::size_t height,
+                                   std::seed_seq seed = std::seed_seq{ std::random_device{}() }) {
+        static std::mt19937_64 engine{ seed };
         std::uniform_int_distribution<std::size_t> randX{ 0, width - 1 };
         std::uniform_int_distribution<std::size_t> randY{ 0, height - 1 };
 
