@@ -57,12 +57,12 @@ public:
 
 private:
     static bool isTriangle(const TriangleVertexes& triangleVertexes) {
-        double a{ std::hypot(triangleVertexes.v0.x - triangleVertexes.v1.x,
-                             triangleVertexes.v0.y - triangleVertexes.v1.y) };
-        double b{ std::hypot(triangleVertexes.v1.x - triangleVertexes.v2.x,
-                             triangleVertexes.v1.y - triangleVertexes.v2.y) };
-        double c{ std::hypot(triangleVertexes.v2.x - triangleVertexes.v0.x,
-                             triangleVertexes.v2.y - triangleVertexes.v0.y) };
+        double a{ std::hypot(static_cast<double>(triangleVertexes.v0.x) - triangleVertexes.v1.x,
+                             static_cast<double>(triangleVertexes.v0.y) - triangleVertexes.v1.y) };
+        double b{ std::hypot(static_cast<double>(triangleVertexes.v1.x) - triangleVertexes.v2.x,
+                             static_cast<double>(triangleVertexes.v1.y) - triangleVertexes.v2.y) };
+        double c{ std::hypot(static_cast<double>(triangleVertexes.v2.x) - triangleVertexes.v0.x,
+                             static_cast<double>(triangleVertexes.v2.y) - triangleVertexes.v0.y) };
 
         return (a + b > c) && (a + c > b) && (b + c > a);
     }
