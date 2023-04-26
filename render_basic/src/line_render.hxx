@@ -14,7 +14,7 @@ namespace graphics {
 
 class LineRender : public IRender
 {
-private:
+protected:
     Canvas& m_canvas;
     std::size_t m_width{};
     std::size_t m_height{};
