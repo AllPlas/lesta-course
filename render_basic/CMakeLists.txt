@@ -15,5 +15,5 @@ find_package(Catch2 REQUIRED)
 
 add_executable(render_basic src/main.cxx src/canvas.hxx src/line_render.hxx src/triangle_render.hxx)
 
-add_executable(render_basic_tests tests/canvas_tests.cxx tests/draw_line_tests.cxx src/triangle_render.hxx)
+add_executable(render_basic_tests tests/canvas_tests.cxx tests/draw_line_tests.cxx)
 target_link_libraries(render_basic_tests PRIVATE Catch2::Catch2WithMain)

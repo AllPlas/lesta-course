@@ -15,6 +15,25 @@ struct TriangleVertexes
     Position v2{};
 
     auto operator<=>(const TriangleVertexes& triangleVertexes) const = default;
+
+    static bool isTriangle(const TriangleVertexes& triangleVertexes) {
+        double a{ distance(triangleVertexes.v0, triangleVertexes.v1) };
+        double b{ distance(triangleVertexes.v1, triangleVertexes.v2) };
+        double c{ distance(triangleVertexes.v2, triangleVertexes.v0) };
+
+        return (a + b > c) && (a + c > b) && (b + c > a);
+    }
+
+    static TriangleVertexes
+    generateRandom(std::size_t width, std::size_t height, unsigned seed = 0) {
+        TriangleVertexes result{};
+        result.v0 = Position::generateRandom(width, height, seed ? seed : 0);
+        result.v1 = Position::generateRandom(width, height, seed ? seed + 10 : 0);
+        result.v2 = Position::generateRandom(width, height, seed ? seed + 20 : 0);
+
+        if (!isTriangle(result)) return generateRandom(width, height, seed);
+        return result;
+    }
 };
 
 class TriangleRender : LineRender
@@ -25,7 +44,7 @@ public:
 
     [[nodiscard]] virtual PixelsPositions
     pixelsPositionsTriangle(Position v0, Position v1, Position v2) const {
-        if (!isTriangle({ v0, v1, v2 }))
+        if (!TriangleVertexes::isTriangle({ v0, v1, v2 }))
             throw std::runtime_error{ "Error : pixelsPositionsTriangle : not a triangle"s };
 
         PixelsPositions result{};
@@ -39,9 +58,9 @@ public:
         return result;
     }
 
-    void drawTriangle(std::vector<Position>& vertexes, Color color) {
+    void drawTriangles(const std::vector<Position>& vertexes, Color color) {
         if (vertexes.size() % 3 != 0)
-            throw std::runtime_error{ "Error : drawTriangle : vertexes.size() % 3 != 0"s };
+            throw std::runtime_error{ "Error : drawTriangles : vertexes.size() % 3 != 0"s };
 
         for (std::size_t i{}; i < vertexes.size() / 3; ++i) {
             auto v0{ vertexes.at(i * 3 + 0) };
@@ -53,18 +72,6 @@ public:
                 m_canvas.setPixel(position, color);
             });
         }
-    }
-
-private:
-    static bool isTriangle(const TriangleVertexes& triangleVertexes) {
-        double a{ std::hypot(static_cast<double>(triangleVertexes.v0.x) - triangleVertexes.v1.x,
-                             static_cast<double>(triangleVertexes.v0.y) - triangleVertexes.v1.y) };
-        double b{ std::hypot(static_cast<double>(triangleVertexes.v1.x) - triangleVertexes.v2.x,
-                             static_cast<double>(triangleVertexes.v1.y) - triangleVertexes.v2.y) };
-        double c{ std::hypot(static_cast<double>(triangleVertexes.v2.x) - triangleVertexes.v0.x,
-                             static_cast<double>(triangleVertexes.v2.y) - triangleVertexes.v0.y) };
-
-        return (a + b > c) && (a + c > b) && (b + c > a);
     }
 };
 

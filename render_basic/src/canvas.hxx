@@ -58,16 +58,23 @@ struct Position
 
     auto operator<=>(const Position& position) const = default;
 
-    static Position generateRandom(std::size_t width,
-                                   std::size_t height,
-                                   std::seed_seq seed = std::seed_seq{ std::random_device{}() }) {
-        static std::mt19937_64 engine{ seed };
+    static Position generateRandom(std::size_t width, std::size_t height, unsigned seed = 0) {
+        static std::mt19937_64 engine{ std::random_device{}() };
         std::uniform_int_distribution<std::size_t> randX{ 0, width - 1 };
         std::uniform_int_distribution<std::size_t> randY{ 0, height - 1 };
+
+        if (seed != 0) {
+            std::mt19937_64 seedEngine{ seed };
+            return { randX(seedEngine), randY(seedEngine) };
+        }
 
         return { randX(engine), randY(engine) };
     }
 };
+
+static double distance(Position p1, Position p2) {
+    return std::hypot(static_cast<double>(p1.x) - p2.x, static_cast<double>(p1.y) - p2.y);
+}
 
 class Canvas
 {
