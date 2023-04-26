@@ -23,9 +23,9 @@ public:
     LineRender(Canvas& canvas, std::size_t width, std::size_t height)
         : m_canvas{ canvas }, m_width{ width }, m_height{ height } {}
 
-    [[nodiscard]] Positions pixelsPositions(graphics::Position start,
+    [[nodiscard]] PixelsPositions pixelsPositions(graphics::Position start,
                                             graphics::Position end) const override {
-        Positions positions;
+        PixelsPositions positions;
 
         std::int64_t x0 = start.x;
         std::int64_t y0 = start.y;

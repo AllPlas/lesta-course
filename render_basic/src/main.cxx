@@ -1,14 +1,18 @@
-#include <iostream>
-
 #include "canvas.hxx"
 #include "line_render.hxx"
 
 int main() {
-    graphics::Canvas canvas{ 3840, 2160 };
+    constexpr int w{ 1920 };
+    constexpr int h{ 1080 };
+    graphics::Canvas canvas{ w, h };
     canvas.clear(graphics::red);
+    graphics::LineRender lineRender{ canvas, canvas.getWidth(), canvas.getHeight() };
 
-    graphics::LineRender lineRender{ canvas.getWidth(), canvas.getHeight(), canvas };
+    for (std::size_t i{}; i < 100; ++i) {
+        lineRender.drawLine(graphics::Position::generateRandom(w, h),
+                            graphics::Position::generateRandom(w, h),
+                            graphics::Color::generateRandom());
+    }
 
-    lineRender.drawLine({ 606, 424 }, { 426, 253 }, graphics::green);
     canvas.saveImage("drawLine.ppm");
 }

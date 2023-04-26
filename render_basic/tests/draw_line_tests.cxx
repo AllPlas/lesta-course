@@ -24,8 +24,8 @@ struct StringMaker<graphics::Position>
 
 using namespace graphics;
 
-Positions pixels_positions(Position start, Position end) {
-    Positions result;
+PixelsPositions pixels_positions(Position start, Position end) {
+    PixelsPositions result;
     int x0 = start.x;
     int y0 = start.y;
     int x1 = end.x;
