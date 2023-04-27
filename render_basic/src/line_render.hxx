@@ -39,7 +39,7 @@ public:
         int sy{ y0 < y1 ? 1 : -1 };
 
         std::int64_t error{ dx > dy ? dx / 2 : dy / 2 };
-        if (dx > dy) {
+        if (dx >= dy) {
             while (x0 != x1) {
                 positions.emplace_back(x0, y0);
                 x0 += sx;
