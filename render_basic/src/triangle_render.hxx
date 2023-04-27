@@ -8,25 +8,25 @@
 
 namespace graphics {
 
-struct TriangleVertexes
+struct TriangleVertices
 {
     Position v0{};
     Position v1{};
     Position v2{};
 
-    auto operator<=>(const TriangleVertexes& triangleVertexes) const = default;
+    auto operator<=>(const TriangleVertices& triangleVertices) const = default;
 
-    static bool isTriangle(const TriangleVertexes& triangleVertexes) {
-        double a{ distance(triangleVertexes.v0, triangleVertexes.v1) };
-        double b{ distance(triangleVertexes.v1, triangleVertexes.v2) };
-        double c{ distance(triangleVertexes.v2, triangleVertexes.v0) };
+    static bool isTriangle(const TriangleVertices& triangleVertices) {
+        double a{ distance(triangleVertices.v0, triangleVertices.v1) };
+        double b{ distance(triangleVertices.v1, triangleVertices.v2) };
+        double c{ distance(triangleVertices.v2, triangleVertices.v0) };
 
         return (a + b > c) && (a + c > b) && (b + c > a);
     }
 
-    static TriangleVertexes
+    static TriangleVertices
     generateRandom(std::size_t width, std::size_t height, unsigned seed = 0) {
-        TriangleVertexes result{};
+        TriangleVertices result{};
         result.v0 = Position::generateRandom(width, height, seed ? seed : 0);
         result.v1 = Position::generateRandom(width, height, seed ? seed + 10 : 0);
         result.v2 = Position::generateRandom(width, height, seed ? seed + 20 : 0);
@@ -36,7 +36,7 @@ struct TriangleVertexes
     }
 };
 
-class TriangleRender : LineRender
+class TriangleRender : public LineRender
 {
 public:
     TriangleRender(Canvas& canvas, std::size_t width, std::size_t height)
@@ -44,7 +44,7 @@ public:
 
     [[nodiscard]] virtual PixelsPositions
     pixelsPositionsTriangle(Position v0, Position v1, Position v2) const {
-        if (!TriangleVertexes::isTriangle({ v0, v1, v2 }))
+        if (!TriangleVertices::isTriangle({ v0, v1, v2 }))
             throw std::runtime_error{ "Error : pixelsPositionsTriangle : not a triangle"s };
 
         PixelsPositions result{};
@@ -58,14 +58,14 @@ public:
         return result;
     }
 
-    void drawTriangles(const std::vector<Position>& vertexes, Color color) {
-        if (vertexes.size() % 3 != 0)
-            throw std::runtime_error{ "Error : drawTriangles : vertexes.size() % 3 != 0"s };
+    void drawTriangles(const std::vector<Position>& vertices, Color color) {
+        if (vertices.size() % 3 != 0)
+            throw std::runtime_error{ "Error : drawTriangles : vertices.size() % 3 != 0"s };
 
-        for (std::size_t i{}; i < vertexes.size() / 3; ++i) {
-            auto v0{ vertexes.at(i * 3 + 0) };
-            auto v1{ vertexes.at(i * 3 + 1) };
-            auto v2{ vertexes.at(i * 3 + 2) };
+        for (std::size_t i{}; i < vertices.size() / 3; ++i) {
+            auto v0{ vertices.at(i * 3 + 0) };
+            auto v1{ vertices.at(i * 3 + 1) };
+            auto v2{ vertices.at(i * 3 + 2) };
 
             auto trianglePositions{ pixelsPositionsTriangle(v0, v1, v2) };
             std::ranges::for_each(trianglePositions, [&](const Position position) {
