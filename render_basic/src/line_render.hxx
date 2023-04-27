@@ -38,15 +38,15 @@ public:
         int sx{ x0 < x1 ? 1 : -1 };
         int sy{ y0 < y1 ? 1 : -1 };
 
-        std::int64_t error{ dx > dy ? dx / 2 : dy / 2 };
-        if (dx >= dy) {
+        std::int64_t error{ dx > dy ? dx : dy };
+        if (dx > dy) {
             while (x0 != x1) {
                 positions.emplace_back(x0, y0);
                 x0 += sx;
-                error -= dy;
+                error -= 2 * dy;
                 if (error < 0) {
                     y0 += sy;
-                    error += dx;
+                    error += 2 * dx;
                 }
             }
         }
@@ -54,10 +54,10 @@ public:
             while (y0 != y1) {
                 positions.emplace_back(x0, y0);
                 y0 += sy;
-                error -= dx;
+                error -= 2 * dx;
                 if (error < 0) {
                     x0 += sx;
-                    error += dy;
+                    error += 2 * dy;
                 }
             }
         }
