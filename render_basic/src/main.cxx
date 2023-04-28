@@ -3,7 +3,19 @@
 #include "triangle_indexed_render.hxx"
 #include "triangle_render.hxx"
 
+void drawHorizontalLine() {
+    constexpr int w{ 1920 };
+    constexpr int h{ 1080 };
+
+    graphics::Canvas canvas{ w, h };
+    canvas.clear({ 0, 0, 0 });
+    graphics::LineRender render{ canvas, w, h };
+    render.drawLine({ 0, 0 }, { 1079, 1079 }, graphics::green);
+    canvas.saveImage("line.ppm");
+}
+
 int main() {
+    drawHorizontalLine();
     constexpr int w{ 1920 };
     constexpr int h{ 1080 };
     graphics::Canvas canvas{ w, h };

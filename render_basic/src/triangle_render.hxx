@@ -42,16 +42,16 @@ public:
     TriangleRender(Canvas& canvas, std::size_t width, std::size_t height)
         : LineRender{ canvas, width, height } {}
 
-    [[nodiscard]] virtual PixelsPositions
-    pixelsPositionsTriangle(Position v0, Position v1, Position v2) const {
+    [[nodiscard]] virtual PixelPositions
+    pixelPositionsTriangle(Position v0, Position v1, Position v2) const {
         if (!TriangleVertices::isTriangle({ v0, v1, v2 }))
-            throw std::runtime_error{ "Error : pixelsPositionsTriangle : not a triangle"s };
+            throw std::runtime_error{ "Error : pixelPositionsTriangle : not a triangle"s };
 
-        PixelsPositions result{};
+        PixelPositions result{};
         for (const auto [start, end] :
              { std::pair{ v0, v1 }, std::pair{ v1, v2 }, std::pair{ v2, v0 } }) {
 
-            PixelsPositions line{ LineRender::pixelsPositions(start, end) };
+            PixelPositions line{ LineRender::pixelPositions(start, end) };
             result.insert(result.end(), line.begin(), line.end());
         }
 
@@ -67,7 +67,7 @@ public:
             auto v1{ vertices.at(i * 3 + 1) };
             auto v2{ vertices.at(i * 3 + 2) };
 
-            auto trianglePositions{ pixelsPositionsTriangle(v0, v1, v2) };
+            auto trianglePositions{ pixelPositionsTriangle(v0, v1, v2) };
             std::ranges::for_each(trianglePositions, [&](const Position position) {
                 m_canvas.setPixel(position, color);
             });

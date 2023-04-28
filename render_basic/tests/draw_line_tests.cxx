@@ -24,8 +24,8 @@ struct StringMaker<graphics::Position>
 
 using namespace graphics;
 
-PixelsPositions pixels_positions(Position start, Position end) {
-    PixelsPositions result;
+PixelPositions pixels_positions(Position start, Position end) {
+    PixelPositions result;
     int x0 = start.x;
     int y0 = start.y;
     int x1 = end.x;
@@ -85,8 +85,8 @@ PixelsPositions pixels_positions(Position start, Position end) {
 }
 
 SCENARIO("Draw line tests", "[line]") {
-    constexpr std::size_t width{ 640 };
-    constexpr std::size_t height{ 480 };
+    constexpr std::size_t width{ 3840 };
+    constexpr std::size_t height{ 2160 };
     Canvas canvas{ width, height };
     LineRender lineRender{ canvas, width, height };
 
@@ -124,7 +124,7 @@ SCENARIO("Draw line tests", "[line]") {
     }
 
     const auto isLineEqual{ [&](Position start, Position end) {
-        auto checkVec{ lineRender.pixelsPositions(start, end) };
+        auto checkVec{ lineRender.pixelPositions(start, end) };
         auto requireVec{ pixels_positions(start, end) };
         int error{};
         for (const auto& pos : checkVec)

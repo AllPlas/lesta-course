@@ -128,14 +128,14 @@ public:
     auto operator<=>(const Canvas& canvas) const = default;
 };
 
-using PixelsPositions = std::vector<Position>;
+using PixelPositions = std::vector<Position>;
 
 class IRender
 {
 public:
     virtual ~IRender() = default;
 
-    virtual PixelsPositions pixelsPositions(Position start, Position end) const = 0;
+    [[nodiscard]] virtual PixelPositions pixelPositions(Position start, Position end) const = 0;
 };
 
 } // namespace graphics

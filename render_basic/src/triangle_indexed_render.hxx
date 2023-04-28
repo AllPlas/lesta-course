@@ -29,7 +29,7 @@ public:
             auto v1{ vertices.at(index1) };
             auto v2{ vertices.at(index2) };
 
-            auto trianglePosition{ pixelsPositionsTriangle(v0, v1, v2) };
+            auto trianglePosition{ pixelPositionsTriangle(v0, v1, v2) };
             std::ranges::for_each(trianglePosition, [&](const Position position) {
                 m_canvas.setPixel(position, color);
             });
