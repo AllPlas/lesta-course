@@ -1,7 +1,25 @@
 #include "canvas.hxx"
 #include "line_render.hxx"
 #include "triangle_indexed_render.hxx"
+#include "triangle_interpolated.hxx"
 #include "triangle_render.hxx"
+
+void drawInterpolatedTriangle() {
+    constexpr int w{ 1920 };
+    constexpr int h{ 1080 };
+
+    graphics::Canvas canvas{ w, h };
+    canvas.clear({});
+    graphics::TriangleInterpolateRender render{ canvas, 1920, 1080 };
+    graphics::Vertex v0{ 0, 0, 255, 0, 0 };
+    graphics::Vertex v1{ 1919, 1079, 0, 255, 0 };
+    graphics::Vertex v2{ 0, 1079, 0, 0, 255 };
+    graphics::Vertex v3{ 1919, 0, 0, 0, 255 };
+    std::vector<graphics::Vertex> verticesBuf{ v0, v1, v2, v3 };
+    std::vector<std::uint16_t> indicesBuf{ 0, 1, 2, 0, 1, 3 };
+    render.drawTriangles(verticesBuf, indicesBuf);
+    canvas.saveImage("inter.ppm");
+}
 
 void drawHorizontalLine() {
     constexpr int w{ 1920 };
@@ -15,6 +33,7 @@ void drawHorizontalLine() {
 }
 
 int main() {
+    drawInterpolatedTriangle();
     drawHorizontalLine();
     constexpr int w{ 1920 };
     constexpr int h{ 1080 };
