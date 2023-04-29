@@ -4,31 +4,28 @@
 #include "triangle_interpolated.hxx"
 #include "triangle_render.hxx"
 
-std::vector<graphics::Vertex>
-createCircleVertices(const double centerX, const double centerY, const double radius) {
+std::vector<graphics::Vertex> createCircleVertices(const unsigned segments,
+                                                   const double centerX,
+                                                   const double centerY,
+                                                   const double radius) {
     std::vector<graphics::Vertex> vertices;
-    const int segments = 60; // количество сегментов
-
-    // добавляем центр круга
     vertices.push_back({ centerX, centerY, 255.0, 255.0, 255.0 });
 
-    // добавляем вершины окружности
     for (int i = 0; i <= segments; ++i) {
         double angle =
             2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
         double x = centerX + radius * std::cos(angle);
         double y = centerY + radius * std::sin(angle);
-        vertices.push_back({ x, y, 0.0, 0.0, 255.0 });
+        graphics::Color color{ graphics::Color::generateRandom() };
+        vertices.emplace_back(x, y, color.red, color.green, color.blue);
     }
 
     return vertices;
 }
 
-std::vector<std::uint16_t> createCircleIndices(const int numVertices) {
+std::vector<std::uint16_t> createCircleIndices(const unsigned segments) {
     std::vector<std::uint16_t> indices;
-    const int segments = 60; // количество сегментов
 
-    // добавляем индексы для треугольников
     for (int i = 1; i <= segments; ++i) {
         indices.push_back(0);
         indices.push_back(i);
@@ -76,8 +73,9 @@ void drawCircle() {
     const double centerY = 300.0;
     const double radius = 200.0;
 
-    std::vector<graphics::Vertex> verticesBuffer = createCircleVertices(centerX, centerY, radius);
-    std::vector<std::uint16_t> indicesBuffer = createCircleIndices(verticesBuffer.size());
+    std::vector<graphics::Vertex> verticesBuffer =
+        createCircleVertices(60, centerX, centerY, radius);
+    std::vector<std::uint16_t> indicesBuffer = createCircleIndices(60);
 
     graphics::Canvas canvas{ 1920, 1080 };
     graphics::TriangleInterpolateRender render{ canvas, 1920, 1080 };
