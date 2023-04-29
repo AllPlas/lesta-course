@@ -4,6 +4,45 @@
 #include "triangle_interpolated.hxx"
 #include "triangle_render.hxx"
 
+std::vector<graphics::Vertex>
+createCircleVertices(const double centerX, const double centerY, const double radius) {
+    std::vector<graphics::Vertex> vertices;
+    const int segments = 60; // количество сегментов
+
+    // добавляем центр круга
+    vertices.push_back({ centerX, centerY, 255.0, 255.0, 255.0 });
+
+    // добавляем вершины окружности
+    for (int i = 0; i <= segments; ++i) {
+        double angle =
+            2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(segments);
+        double x = centerX + radius * std::cos(angle);
+        double y = centerY + radius * std::sin(angle);
+        vertices.push_back({ x, y, 0.0, 0.0, 255.0 });
+    }
+
+    return vertices;
+}
+
+std::vector<std::uint16_t> createCircleIndices(const int numVertices) {
+    std::vector<std::uint16_t> indices;
+    const int segments = 60; // количество сегментов
+
+    // добавляем индексы для треугольников
+    for (int i = 1; i <= segments; ++i) {
+        indices.push_back(0);
+        indices.push_back(i);
+        indices.push_back(i + 1);
+    }
+
+    // замыкаем круг
+    indices.push_back(0);
+    indices.push_back(segments + 1);
+    indices.push_back(1);
+
+    return indices;
+}
+
 void drawInterpolatedTriangle() {
     constexpr int w{ 1920 };
     constexpr int h{ 1080 };
@@ -32,9 +71,24 @@ void drawHorizontalLine() {
     canvas.saveImage("line.ppm");
 }
 
+void drawCircle() {
+    const double centerX = 300.0;
+    const double centerY = 300.0;
+    const double radius = 200.0;
+
+    std::vector<graphics::Vertex> verticesBuffer = createCircleVertices(centerX, centerY, radius);
+    std::vector<std::uint16_t> indicesBuffer = createCircleIndices(verticesBuffer.size());
+
+    graphics::Canvas canvas{ 1920, 1080 };
+    graphics::TriangleInterpolateRender render{ canvas, 1920, 1080 };
+    render.drawTriangles(verticesBuffer, indicesBuffer);
+    canvas.saveImage("circle.ppm");
+}
+
 int main() {
     drawInterpolatedTriangle();
     drawHorizontalLine();
+    drawCircle();
     constexpr int w{ 1920 };
     constexpr int h{ 1080 };
     graphics::Canvas canvas{ w, h };

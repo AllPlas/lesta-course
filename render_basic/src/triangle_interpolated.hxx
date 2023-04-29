@@ -78,8 +78,8 @@ private:
         std::vector<Vertex> result{};
         std::size_t lineSize{ static_cast<std::size_t>(std::abs(right.x - left.x)) };
         if (lineSize > 0) {
-            for (std::size_t i{}; i <= lineSize + 2; ++i) {
-                double t{ static_cast<double>(i) / (lineSize + 2) };
+            for (std::size_t i{}; i <= lineSize * 3 ; ++i) {
+                double t{ static_cast<double>(i) / (lineSize * 3) };
                 auto pixel{ interpolate(left, right, t) };
                 result.push_back(pixel);
             }
@@ -96,8 +96,8 @@ private:
 
         std::size_t height{ static_cast<std::size_t>(std::abs(left.y - single.y)) };
         if (height > 0) {
-            for (std::size_t i{}; i <= height + 2; ++i) {
-                double t{ static_cast<double>(i) / (height + 2) };
+            for (std::size_t i{}; i <= height * 3; ++i) {
+                double t{ static_cast<double>(i) / (height  * 3) };
                 auto leftVertex{ interpolate(left, single, t) };
                 auto rightVertex{ interpolate(right, single, t) };
 
