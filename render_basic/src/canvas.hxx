@@ -119,6 +119,7 @@ public:
     void clear(Color color = {}) { std::ranges::fill(m_pixels, color); }
 
     [[nodiscard]] const Pixels& getPixels() const noexcept { return m_pixels; }
+    [[nodiscard]] Pixels& getPixels() noexcept { return m_pixels; }
     [[nodiscard]] std::size_t getWidth() const noexcept { return m_width; }
     [[nodiscard]] std::size_t getHeight() const noexcept { return m_height; }
 
