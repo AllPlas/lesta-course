@@ -7,6 +7,7 @@
 #include <functional>
 #include <stdexcept>
 
+#include "gfx_program.hxx"
 #include "triangle_indexed_render.hxx"
 
 namespace graphics {
@@ -46,9 +47,12 @@ static Vertex interpolate(const Vertex& start, const Vertex& end, const double t
 
 class TriangleInterpolateRender : public TriangleIndexedRender
 {
+private:
+    IGfx& m_gfx;
+
 public:
-    TriangleInterpolateRender(Canvas& canvas, std::size_t width, std::size_t height)
-        : TriangleIndexedRender(canvas, width, height) {}
+    TriangleInterpolateRender(Canvas& canvas, std::size_t width, std::size_t height, IGfx& gfx)
+        : TriangleIndexedRender(canvas, width, height), m_gfx{ gfx } {}
 
     void drawTriangles(const std::vector<Vertex>& vertices,
                        const std::vector<std::uint16_t>& indices) {
@@ -64,10 +68,14 @@ public:
             auto v1{ vertices.at(index1) };
             auto v2{ vertices.at(index2) };
 
+            v0 = m_gfx.vertexShader(v0);
+            v1 = m_gfx.vertexShader(v1);
+            v2 = m_gfx.vertexShader(v2);
+
             auto interpolatedTriangle{ rasterizeTriangle(v0, v1, v2) };
 
             std::ranges::for_each(interpolatedTriangle, [&](const Vertex& vertex) {
-                m_canvas.setPixel(vertex.extractPosition(), vertex.extractColor());
+                m_canvas.setPixel(vertex.extractPosition(), m_gfx.fragmentShader(vertex));
             });
         }
     }
@@ -78,8 +86,9 @@ private:
         std::vector<Vertex> result{};
         std::size_t lineSize{ static_cast<std::size_t>(std::abs(right.x - left.x)) };
         if (lineSize > 0) {
-            for (std::size_t i{}; i <= lineSize * 3 ; ++i) {
-                double t{ static_cast<double>(i) / (lineSize * 3) };
+            lineSize += 1;
+            for (std::size_t i{}; i <= lineSize; ++i) {
+                double t{ static_cast<double>(i) / (lineSize) };
                 auto pixel{ interpolate(left, right, t) };
                 result.push_back(pixel);
             }
@@ -96,8 +105,9 @@ private:
 
         std::size_t height{ static_cast<std::size_t>(std::abs(left.y - single.y)) };
         if (height > 0) {
-            for (std::size_t i{}; i <= height * 3; ++i) {
-                double t{ static_cast<double>(i) / (height  * 3) };
+            height += 1;
+            for (std::size_t i{}; i <= height; ++i) {
+                double t{ static_cast<double>(i) / (height) };
                 auto leftVertex{ interpolate(left, single, t) };
                 auto rightVertex{ interpolate(right, single, t) };
 
