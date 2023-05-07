@@ -55,6 +55,7 @@ public:
     virtual bool readInput(Event& event) = 0;
     virtual void renderTriangle(const Triangle& triangle) = 0;
     virtual void swapBuffers() = 0;
+    virtual void recompileShaders() = 0;
 };
 
 std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine();

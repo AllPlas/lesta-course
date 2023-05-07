@@ -173,6 +173,11 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
+    void recompileShaders() override {
+        glDeleteProgram(m_programId);
+        createProgram();
+    }
+
 private:
     static void initSDL() {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
@@ -319,6 +324,21 @@ reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
             } };
 }
 
+template <typename Fn>
+static void fileCheck(const fs::path& path, const Fn& fn) {
+    static auto lastWriteTime{ fs::last_write_time(path) };
+    auto writeTime{ fs::last_write_time(path) };
+    if (lastWriteTime == writeTime) return;
+
+    while (lastWriteTime != writeTime) {
+        std::this_thread::sleep_for(100ms);
+        lastWriteTime = writeTime;
+        writeTime = fs::last_write_time(path);
+    }
+
+    fn();
+}
+
 int main(int argc, char* argv[]) {
     try {
         auto engine{ createEngine() };
@@ -362,6 +382,11 @@ int main(int argc, char* argv[]) {
 
                 timeDuringLoading = currentWriteTime;
             }
+
+            fileCheck(fs::path(argv[1]) / "vertex_shader.glsl",
+                      [&engine]() { engine->recompileShaders(); });
+            fileCheck(fs::path(argv[1]) / "fragment_shader.glsl",
+                      [&engine]() { engine->recompileShaders(); });
 
             Event event{};
             while (engine->readInput(event)) {
