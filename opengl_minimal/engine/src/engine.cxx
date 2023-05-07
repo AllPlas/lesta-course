@@ -182,9 +182,9 @@ private:
     [[maybe_unused]] void createGLContext() {
         const std::string_view platform{ SDL_GetPlatform() };
 
-        int gl_major_ver{ 4 };
-        int gl_minor_ver{ 1 };
-        int gl_context_profile{ SDL_GL_CONTEXT_PROFILE_CORE };
+        int gl_major_ver{ 3 };
+        int gl_minor_ver{ 0 };
+        int gl_context_profile{ SDL_GL_CONTEXT_PROFILE_ES };
 
         if (platform == "macOS") {
             gl_major_ver = 4;
@@ -210,141 +210,15 @@ private:
     }
 
     void createProgram() {
-//        m_programId = glCreateProgram();
-//        createVertexShader();
-//        createFragmentShader();
-//
-//        glLinkProgram(m_programId);
-//        glBindAttribLocation(m_programId, 0, "a_position");
-//
-//        glUseProgram(m_programId);
-//        glEnable(GL_DEPTH_TEST);
-
-        GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-        OM_GL_CHECK()
-        std::string_view vertex_shader_src = R"(
-                                    #version 410 core
-                                    in vec3 a_position;
-                                    out vec4 v_position;
-
-                                    void main()
-                                    {
-                                        v_position = vec4(a_position, 1.0);
-                                        gl_Position = v_position;
-                                    }
-                                    )";
-        const char* source            = vertex_shader_src.data();
-        glShaderSource(vert_shader, 1, &source, nullptr);
-        OM_GL_CHECK()
-
-        glCompileShader(vert_shader);
-        OM_GL_CHECK()
-
-        GLint compiled_status = 0;
-        glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &compiled_status);
-        OM_GL_CHECK()
-        if (compiled_status == 0)
-        {
-            GLint info_len = 0;
-            glGetShaderiv(vert_shader, GL_INFO_LOG_LENGTH, &info_len);
-            OM_GL_CHECK()
-            std::vector<char> info_chars(static_cast<size_t>(info_len));
-            glGetShaderInfoLog(vert_shader, info_len, nullptr, info_chars.data());
-            OM_GL_CHECK()
-            glDeleteShader(vert_shader);
-            OM_GL_CHECK()
-
-        }
-
-        // create fragment shader
-
-        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        OM_GL_CHECK()
-        std::string_view fragment_shader_src = R"(
-                      #version 410 core
-                      precision mediump float;
-
-                      in vec4 v_position;
-
-                      out vec4 frag_color;
-
-                      // try main_one function name on linux mesa drivers
-                      void main()
-                      {
-                          if (v_position.z >= 0.0)
-                          {
-                              float light_green = 0.5 + v_position.z / 2.0;
-                              frag_color = vec4(0.0, light_green, 0.0, 1.0);
-                          } else
-                          {
-                              float color = 0.5 - (v_position.z / -2.0);
-                              frag_color = vec4(color, 0.0, 0.0, 1.0);
-                          }
-                      }
-                      )";
-        source                          = fragment_shader_src.data();
-        glShaderSource(fragment_shader, 1, &source, nullptr);
-        OM_GL_CHECK()
-
-        glCompileShader(fragment_shader);
-        OM_GL_CHECK()
-
-        compiled_status = 0;
-        glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compiled_status);
-        OM_GL_CHECK()
-        if (compiled_status == 0)
-        {
-            GLint info_len = 0;
-            glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_len);
-            OM_GL_CHECK()
-            std::vector<char> info_chars(static_cast<size_t>(info_len));
-            glGetShaderInfoLog(
-                fragment_shader, info_len, nullptr, info_chars.data());
-            OM_GL_CHECK()
-            glDeleteShader(fragment_shader);
-            OM_GL_CHECK()
-        }
-
-        // now create program and attach vertex and fragment shaders
-
         m_programId = glCreateProgram();
-        OM_GL_CHECK()
-        if (0 == m_programId)
-        {
-        }
+        createVertexShader();
+        createFragmentShader();
 
-        glAttachShader(m_programId, vert_shader);
-        OM_GL_CHECK()
-        glAttachShader(m_programId, fragment_shader);
-        OM_GL_CHECK()
-
-        // bind attribute location
-        glBindAttribLocation(m_programId, 0, "a_position");
-        OM_GL_CHECK()
-        // link program after binding attribute locations
         glLinkProgram(m_programId);
-        OM_GL_CHECK()
-        // Check the link status
-        GLint linked_status = 0;
-        glGetProgramiv(m_programId, GL_LINK_STATUS, &linked_status);
-        OM_GL_CHECK()
-        if (linked_status == 0)
-        {
-            GLint infoLen = 0;
-            glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &infoLen);
-            OM_GL_CHECK()
-            std::vector<char> infoLog(static_cast<size_t>(infoLen));
-            glGetProgramInfoLog(m_programId, infoLen, nullptr, infoLog.data());
-            OM_GL_CHECK()
-        }
+        glBindAttribLocation(m_programId, 0, "a_position");
 
-        // turn on rendering with just created shader program
         glUseProgram(m_programId);
-        OM_GL_CHECK()
-
         glEnable(GL_DEPTH_TEST);
-        // glDisable(GL_DEPTH_TEST);
-
     }
 
     void createVertexShader() {
