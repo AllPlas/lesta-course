@@ -4,13 +4,13 @@
 #include "engine.hxx"
 
 #include <SDL3/SDL.h>
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <future>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
-#include <cassert>
 #include <thread>
 #include <unordered_map>
 
@@ -95,6 +95,22 @@ static std::optional<Event> checkKeyboardInput(SDL_Event& event) {
     return std::nullopt;
 }
 
+static std::string readFile(const fs::path& path) {
+    std::ifstream in{ path };
+    if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
+
+    std::string result{};
+    while (in) {
+        std::string buf{};
+        std::getline(in, buf);
+        if (!in) break;
+        result += buf;
+        result += '\n';
+    }
+
+    return result;
+}
+
 class EngineImpl final : public IEngine
 {
 private:
@@ -102,11 +118,14 @@ private:
     SDL_GLContext m_glContext{};
     GLuint m_programId{};
 
+    fs::path shaderFolder;
+
 public:
     EngineImpl() = default;
     ~EngineImpl() override { uninitialize(); }
 
     std::string initialize(std::string_view config) override {
+        shaderFolder = config;
         initSDL();
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
         m_window = createWindow();
@@ -161,7 +180,7 @@ private:
     }
 
     static SDL_Window* createWindow() {
-        if (auto window{ SDL_CreateWindow("SDL3 infinity loop", 640, 480, SDL_WINDOW_OPENGL) };
+        if (auto window{ SDL_CreateWindow("OpenGL test", 640, 480, SDL_WINDOW_OPENGL) };
             window != nullptr)
             return window;
 
@@ -179,7 +198,7 @@ private:
         throw std::runtime_error{ "Error : failed call SDL_CreateRenderer: "s + SDL_GetError() };
     }
 
-    [[maybe_unused]] void createGLContext() {
+    void createGLContext() {
         const std::string_view platform{ SDL_GetPlatform() };
 
         int gl_major_ver{ 3 };
@@ -211,8 +230,8 @@ private:
 
     void createProgram() {
         m_programId = glCreateProgram();
-        createVertexShader();
-        createFragmentShader();
+        createShader(GL_VERTEX_SHADER, "vertex_shader.glsl");
+        createShader(GL_FRAGMENT_SHADER, "fragment_shader.glsl");
 
         glLinkProgram(m_programId);
         glBindAttribLocation(m_programId, 0, "a_position");
@@ -221,60 +240,22 @@ private:
         glEnable(GL_DEPTH_TEST);
     }
 
-    void createVertexShader() {
-        GLuint vertexShader{ glCreateShader(GL_VERTEX_SHADER) };
-        std::string shaderSource{ readFile(
-            "/Users/aleksey/lesta-course/opengl_minimal/vertex_shader.glsl") };
-        std::cout << shaderSource.c_str() << '\n';
-        auto source{ shaderSource.c_str() };
-        glShaderSource(vertexShader, 1, &source, nullptr);
+    void createShader(GLuint type, std::string_view filename) {
+        GLuint shader{ glCreateShader(type) };
+        std::string shaderSource{ readFile(shaderFolder / filename) };
+        const char* source{ shaderSource.c_str() };
 
-        glCompileShader(vertexShader);
+        glShaderSource(shader, 1, &source, nullptr);
+        glCompileShader(shader);
 
         GLint compileStatus{};
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &compileStatus);
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
         if (compileStatus == 0) {
-            glDeleteShader(vertexShader);
-            throw std::runtime_error{ "Error : createVertexShader : bad compile shader"s };
+            glDeleteShader(shader);
+            throw std::runtime_error{ "Error : createShader : bad compile shader"s };
         }
 
-        glAttachShader(m_programId, vertexShader);
-    };
-
-    void createFragmentShader() {
-        GLuint fragmentShader{ glCreateShader(GL_FRAGMENT_SHADER) };
-        std::string shaderSource{ readFile(
-            "/Users/aleksey/lesta-course/opengl_minimal/fragment_shader.glsl"s) };
-
-        auto source{ shaderSource.c_str() };
-        glShaderSource(fragmentShader, 1, &source, nullptr);
-
-        glCompileShader(fragmentShader);
-
-        GLint compileStatus{};
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &compileStatus);
-        if (compileStatus == 0) {
-            glDeleteShader(fragmentShader);
-            throw std::runtime_error{ "Error : createFragmentShader : bad compile shader"s };
-        }
-
-        glAttachShader(m_programId, fragmentShader);
-    }
-
-    static std::string readFile(const fs::path& path) {
-        std::ifstream in{ path };
-        if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
-
-        std::string result{};
-        while (in) {
-            std::string buf{};
-            std::getline(in, buf, '\n');
-            if (!in) break;
-            result += buf;
-            result += '\n';
-        }
-
-        return result;
+        glAttachShader(m_programId, shader);
     }
 };
 
@@ -338,10 +319,10 @@ reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
             } };
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     try {
         auto engine{ createEngine() };
-        auto answer = engine->initialize("");
+        auto answer = engine->initialize(argv[1]);
         if (!answer.empty()) { return EXIT_FAILURE; }
         std::cout << "start app"sv << std::endl;
 
@@ -400,8 +381,9 @@ int main() {
                 updateResult = std::async(std::launch::async, &IGame::update, game.get());
             else if (updateResult.wait_for(0s) == std::future_status::ready) {
                 // game->update();
-                game->render();
-                updateResult = std::async(std::launch::async, &IGame::update, game.get());
+                //      game->render();
+                //                updateResult = std::async(std::launch::async, &IGame::update,
+                //                game.get());
             }
 
             Triangle t{ { -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.0, 0.8, -0.5 } };
