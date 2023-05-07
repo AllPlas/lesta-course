@@ -182,9 +182,9 @@ private:
     [[maybe_unused]] void createGLContext() {
         const std::string_view platform{ SDL_GetPlatform() };
 
-        int gl_major_ver{ 3 };
-        int gl_minor_ver{ 2 };
-        int gl_context_profile{ SDL_GL_CONTEXT_PROFILE_ES };
+        int gl_major_ver{ 4 };
+        int gl_minor_ver{ 1 };
+        int gl_context_profile{ SDL_GL_CONTEXT_PROFILE_CORE };
 
         if (platform == "macOS") {
             gl_major_ver = 4;
