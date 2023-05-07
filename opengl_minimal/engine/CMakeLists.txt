@@ -6,8 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(SDL3 REQUIRED)
+find_package(OpenGL REQUIRED)
 
-add_executable(engine src/engine.cxx)
+add_executable(engine src/engine.cxx glad/src/glad.c)
 
 set_target_properties(
         engine PROPERTIES
@@ -15,7 +16,8 @@ set_target_properties(
 )
 
 target_include_directories(engine PUBLIC include)
-target_link_libraries(engine PRIVATE SDL3::SDL3-shared)
+target_include_directories(engine PRIVATE glad/include)
+target_link_libraries(engine PRIVATE SDL3::SDL3-shared OpenGL::GL)
 
 if (WIN32)
     add_custom_command(TARGET engine POST_BUILD
