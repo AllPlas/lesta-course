@@ -1,7 +1,4 @@
 cmake_minimum_required(VERSION 3.18)
-
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
-
 project(engine)
 
 set(CMAKE_CXX_STANDARD 23)

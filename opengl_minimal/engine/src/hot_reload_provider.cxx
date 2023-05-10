@@ -14,17 +14,24 @@
 
 namespace json = boost::json;
 
-HotReloadProvider::HotReloadProvider(fs::path path) : m_configPath{ std::move(path) } {}
+HotReloadProvider::HotReloadProvider(fs::path path) : m_configPath{ std::move(path) } {
+    readFile();
+    extractGame();
+    extractShaders();
+}
 
 void HotReloadProvider::check() {
     configFileChanged();
-    std::ranges::for_each(m_map, [](auto& reloader) { reloader.second.fn(); });
+    for (const auto& [name, handler] : m_map) {
+        handler.fn();
+    }
 }
 
 void HotReloadProvider::readFile() {
     std::ifstream in{ m_configPath };
     if (!in.is_open()) throw std::runtime_error{ "Error : extractGame : bad open file"s };
 
+    m_fileData.clear();
     while (in) {
         std::string buf{};
         std::getline(in, buf);
@@ -35,44 +42,46 @@ void HotReloadProvider::readFile() {
 }
 
 void HotReloadProvider::extractGame() {
-    json::value value(m_fileData);
+    json::value value(json::parse(m_fileData));
     auto game{ value.as_object().find("game") };
 
-    auto reloader{ m_map[game->key()] };
+    auto& reloader{ m_map[game->key()] };
     reloader.path = game->value().as_string().c_str();
 }
 
 void HotReloadProvider::extractShaders() {
-    json::value value(m_fileData);
+    json::value value(json::parse(m_fileData));
 
     auto vertexShader{ value.as_object().find("vertex_shader") };
-    auto reloaderVertex{ m_map[vertexShader->key()] };
+    auto& reloaderVertex{ m_map[vertexShader->key()] };
     reloaderVertex.path = vertexShader->value().as_string().c_str();
 
     auto fragmentShader{ value.as_object().find("fragment_shader") };
-    auto reloaderFragment{ m_map[fragmentShader->key()] };
+    auto& reloaderFragment{ m_map[fragmentShader->key()] };
     reloaderFragment.path = fragmentShader->value().as_string().c_str();
 }
 
 void HotReloadProvider::addToCheck(std::string_view name, std::function<void()> fn) {
-    auto reloader{ m_map.at(name.data()) };
+    auto& reloader{ m_map.at(name.data()) };
 
-    auto function{ [&, f = std::move(fn)]() {
+    auto functionFactory{ [&reloader, fn = std::move(fn)]() mutable {
         static fs::file_time_type lastWriteTime{};
-        auto currentWriteTime{ fs::last_write_time(reloader.path) };
+        return [lastWriteTime = lastWriteTime, &reloader, fn = std::move(fn)]() mutable {
+            auto currentWriteTime{ fs::last_write_time(reloader.path) };
 
-        if (lastWriteTime == currentWriteTime) return;
+            if (lastWriteTime == currentWriteTime) return;
 
-        while (lastWriteTime != currentWriteTime) {
-            std::this_thread::sleep_for(100ms);
+            while (lastWriteTime != currentWriteTime) {
+                std::this_thread::sleep_for(100ms);
 
-            lastWriteTime = currentWriteTime;
-            currentWriteTime = fs::last_write_time(reloader.path);
-        }
-        f();
+                lastWriteTime = currentWriteTime;
+                currentWriteTime = fs::last_write_time(reloader.path);
+            }
+            fn();
+        };
     } };
 
-    reloader.fn = std::move(function);
+    reloader.fn = functionFactory();
 }
 
 void HotReloadProvider::configFileChanged() {
@@ -88,6 +97,7 @@ void HotReloadProvider::configFileChanged() {
         currentWriteTime = fs::last_write_time(m_configPath);
     }
 
+    readFile();
     extractGame();
     extractShaders();
 }

@@ -1,5 +1,5 @@
 {
-  "game": "",
-  "vertex_shader": "",
-  "fragment_shader": ""
+  "game": "/Users/aleksey/lesta-course/opengl_minimal/cmake-build-debug/engine/libgame.dylib",
+  "vertex_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/vertex_shader.glsl",
+  "fragment_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/fragment_shader.glsl"
 }
