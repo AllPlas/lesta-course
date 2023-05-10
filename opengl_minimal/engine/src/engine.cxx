@@ -3,6 +3,8 @@
 //
 #include "engine.hxx"
 
+#include <boost/program_options.hpp>
+
 #include <SDL3/SDL.h>
 #include <cassert>
 #include <filesystem>
@@ -15,6 +17,7 @@
 #include <unordered_map>
 
 #include "glad/glad.h"
+#include "hot_reload_provider.hxx"
 
 #define OM_GL_CHECK()                                                                            \
     {                                                                                            \
@@ -118,19 +121,18 @@ private:
     SDL_GLContext m_glContext{};
     GLuint m_programId{};
 
-    fs::path shaderFolder;
+    GLuint m_vertexShader{};
+    GLuint m_fragmentShader{};
 
 public:
     EngineImpl() = default;
     ~EngineImpl() override { uninitialize(); }
 
     std::string initialize(std::string_view config) override {
-        shaderFolder = config;
         initSDL();
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
         m_window = createWindow();
         createGLContext();
-        createProgram();
         return "";
     }
 
@@ -173,8 +175,13 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    void recompileShaders() override {
-        glDeleteProgram(m_programId);
+    void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) override {
+        if (m_vertexShader) glDeleteShader(m_vertexShader);
+        if (m_fragmentShader) glDeleteShader(m_fragmentShader);
+        if (m_programId) glDeleteProgram(m_programId);
+
+        createShader(GL_VERTEX_SHADER, vertexPath);
+        createShader(GL_FRAGMENT_SHADER, fragmentPath);
         createProgram();
     }
 
@@ -235,8 +242,6 @@ private:
 
     void createProgram() {
         m_programId = glCreateProgram();
-        createShader(GL_VERTEX_SHADER, "vertex_shader.glsl");
-        createShader(GL_FRAGMENT_SHADER, "fragment_shader.glsl");
 
         glLinkProgram(m_programId);
         glBindAttribLocation(m_programId, 0, "a_position");
@@ -245,9 +250,9 @@ private:
         glEnable(GL_DEPTH_TEST);
     }
 
-    void createShader(GLuint type, std::string_view filename) {
+    void createShader(GLuint type, std::string_view filepath) {
         GLuint shader{ glCreateShader(type) };
-        std::string shaderSource{ readFile(shaderFolder / filename) };
+        std::string shaderSource{ readFile(filepath) };
         const char* source{ shaderSource.c_str() };
 
         glShaderSource(shader, 1, &source, nullptr);
@@ -261,6 +266,11 @@ private:
         }
 
         glAttachShader(m_programId, shader);
+
+        if (type == GL_VERTEX_SHADER)
+            m_vertexShader = shader;
+        else if (type == GL_FRAGMENT_SHADER)
+            m_fragmentShader = shader;
     }
 };
 
@@ -324,101 +334,113 @@ reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
             } };
 }
 
-template <typename Fn>
-static void fileCheck(const fs::path& path, const Fn& fn) {
-    static auto lastWriteTime{ fs::last_write_time(path) };
-    auto writeTime{ fs::last_write_time(path) };
-    if (lastWriteTime == writeTime) return;
+struct Args
+{
+    std::string configFilePath{};
+};
 
-    while (lastWriteTime != writeTime) {
-        std::this_thread::sleep_for(100ms);
-        lastWriteTime = writeTime;
-        writeTime = fs::last_write_time(path);
-    }
+std::optional<Args> parseCommandLine(int argc, const char* argv[]) {
+    namespace po = boost::program_options;
 
-    fn();
+    po::options_description description{ "Allowed options"s };
+    Args args{};
+    description.add_options()("help,h", "produce help message") //
+        ("config-file,c",
+         po::value(&args.configFilePath)->value_name("file"),
+         "set config file path");
+
+    po::variables_map vm{};
+    po::store(po::parse_command_line(argc, argv, description), vm);
+    po::notify(vm);
+
+    if (!vm.contains("config-file")) throw std::runtime_error{ "Config file not been specified"s };
+
+    return args;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
     try {
-        auto engine{ createEngine() };
-        auto answer = engine->initialize(argv[1]);
-        if (!answer.empty()) { return EXIT_FAILURE; }
-        std::cout << "start app"sv << std::endl;
+        if (auto args{ parseCommandLine(argc, argv) }) {
+            auto engine{ createEngine() };
+            auto answer{ engine->initialize("") };
+            if (!answer.empty()) { return EXIT_FAILURE; }
 
-        std::string_view libraryName{ SDL_GetPlatform() == "Windows"s ? "game.dll" : "./game.so" };
-        std::string_view tempLibraryName{ "./temp.dll" };
-        void* gameLibraryHandle{};
-        auto game{ reloadGame(nullptr, libraryName, tempLibraryName, *engine, gameLibraryHandle) };
-        auto timeDuringLoading{ fs::last_write_time(libraryName) };
-        game->initialize();
+            HotReloadProvider hotReloadProvider{ args->configFilePath };
+            std::cout << "start app"sv << std::endl;
 
-        bool isEnd{};
-        auto updateResult{ std::async(std::launch::async, &IGame::update, game.get()) };
-        while (!isEnd) {
-            auto currentWriteTime{ fs::last_write_time(libraryName) };
-            if (currentWriteTime != timeDuringLoading) {
+            std::string_view tempLibraryName{ "./temp.dll" };
+            void* gameLibraryHandle{};
+            std::unique_ptr<IGame, std::function<void(IGame * game)>> game;
+
+            hotReloadProvider.addToCheck("game", [&]() {
+                std::cout << "waiting...\n"sv;
+                game = reloadGame(std::move(game),
+                                  hotReloadProvider.getPath("game"),
+                                  tempLibraryName,
+                                  *engine,
+                                  gameLibraryHandle);
+            });
+
+            hotReloadProvider.addToCheck("vertex_shader", [&]() {
+                engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
+                                         hotReloadProvider.getPath("fragment_shader"));
+            });
+
+            hotReloadProvider.addToCheck("fragment_shader", [&]() {
+                engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
+                                         hotReloadProvider.getPath("fragment_shader"));
+            });
+
+            hotReloadProvider.check();
+
+            game->initialize();
+
+            bool isEnd{};
+            auto updateResult{ std::async(std::launch::async, &IGame::update, game.get()) };
+            hotReloadProvider.addToCheck("game", [&]() {
                 std::cout << "waiting...\n"sv;
                 updateResult.get();
+                game = reloadGame(std::move(game),
+                                  hotReloadProvider.getPath("game"),
+                                  tempLibraryName,
+                                  *engine,
+                                  gameLibraryHandle);
+            });
 
-                while (true) {
-                    std::this_thread::sleep_for(100ms);
-                    auto nextWriteTime{ fs::last_write_time(libraryName) };
+            while (!isEnd) {
+                hotReloadProvider.check();
+                Event event{};
+                while (engine->readInput(event)) {
+                    // std::cout << event << '\n';
 
-                    if (nextWriteTime != currentWriteTime)
-                        currentWriteTime = nextWriteTime;
-                    else
+                    if (event == Event::turn_off) {
+                        std::cout << "exiting..."sv << std::endl;
+                        isEnd = true;
                         break;
+                    }
+
+                    game->onEvent(event);
                 }
 
-                std::cout << "reloading game\n"sv;
-                game = reloadGame(
-                    std::move(game), libraryName, tempLibraryName, *engine, gameLibraryHandle);
-
-                if (game == nullptr) {
-                    std::cerr << "next attempt to reload game\n"sv;
-                    continue;
+                if (event == Event::turn_off) break;
+                if (!updateResult.valid())
+                    updateResult = std::async(std::launch::async, &IGame::update, game.get());
+                else if (updateResult.wait_for(0s) == std::future_status::ready) {
+                    // game->update();
+                    //      game->render();
+                    //                updateResult = std::async(std::launch::async, &IGame::update,
+                    //                game.get());
                 }
 
-                timeDuringLoading = currentWriteTime;
+                Triangle t{ { -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.0, 0.8, -0.5 } };
+
+                engine->renderTriangle(t);
+                engine->swapBuffers();
             }
 
-            fileCheck(fs::path(argv[1]) / "vertex_shader.glsl",
-                      [&engine]() { engine->recompileShaders(); });
-            fileCheck(fs::path(argv[1]) / "fragment_shader.glsl",
-                      [&engine]() { engine->recompileShaders(); });
-
-            Event event{};
-            while (engine->readInput(event)) {
-                // std::cout << event << '\n';
-
-                if (event == Event::turn_off) {
-                    std::cout << "exiting..."sv << std::endl;
-                    isEnd = true;
-                    break;
-                }
-
-                game->onEvent(event);
-            }
-
-            if (event == Event::turn_off) break;
-            if (!updateResult.valid())
-                updateResult = std::async(std::launch::async, &IGame::update, game.get());
-            else if (updateResult.wait_for(0s) == std::future_status::ready) {
-                // game->update();
-                //      game->render();
-                //                updateResult = std::async(std::launch::async, &IGame::update,
-                //                game.get());
-            }
-
-            Triangle t{ { -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.0, 0.8, -0.5 } };
-
-            engine->renderTriangle(t);
-            engine->swapBuffers();
+            engine->uninitialize();
+            return EXIT_SUCCESS;
         }
-
-        engine->uninitialize();
-        return EXIT_SUCCESS;
     }
     catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
