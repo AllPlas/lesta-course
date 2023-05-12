@@ -9,7 +9,6 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
-#include <future>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -38,6 +37,9 @@
                 break;                                                                           \
             case GL_OUT_OF_MEMORY:                                                               \
                 std::cerr << "GL_OUT_OF_MEMORY" << std::endl;                                    \
+                break;                                                                           \
+            default:                                                                             \
+                std::cerr << "UNKNOWN ERROR" << std::endl;                                       \
                 break;                                                                           \
             }                                                                                    \
             std::cerr << __FILE__ << ':' << __LINE__ << '(' << __FUNCTION__ << ')' << std::endl; \
@@ -69,6 +71,18 @@ static const std::unordered_map<Event, std::string_view> s_eventToStringView{
 std::ostream& operator<<(std::ostream& out, Event event) {
     out << s_eventToStringView.at(event);
     return out;
+}
+
+std::ifstream& operator>>(std::ifstream& in, Vertex& vertex) {
+    in >> vertex.x >> vertex.y >> vertex.z;
+    return in;
+}
+
+std::ifstream& operator>>(std::ifstream& in, Triangle& triangle) {
+    for (auto& vertex : triangle.vertices)
+        in >> vertex;
+
+    return in;
 }
 
 struct EventBind
@@ -116,13 +130,28 @@ static std::string readFile(const fs::path& path) {
 
 class EngineImpl final : public IEngine
 {
+public:
+    struct Uniforms
+    {
+        float scale{};
+        float time{};
+        std::pair<float, float> center{};
+        float spiral_speed{};
+        float spiral_density{};
+    };
+
+    inline static Uniforms uniforms{ 1.0, 1.0, {}, 1.0, 1.0 };
+
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
     GLuint m_programId{};
 
-    GLuint m_vertexShader{};
-    GLuint m_fragmentShader{};
+    GLuint m_verticesBuffer{};
+    GLuint m_indicesBuffer{};
+
+    std::vector<Vertex> m_vertices{};
+    std::vector<GLuint> m_indices{};
 
 public:
     EngineImpl() = default;
@@ -133,10 +162,29 @@ public:
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
         m_window = createWindow();
         createGLContext();
+
+        glGenBuffers(1, &m_verticesBuffer);
+        OM_GL_CHECK();
+
+        glGenBuffers(1, &m_indicesBuffer);
+        OM_GL_CHECK();
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_verticesBuffer);
+        OM_GL_CHECK();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
+        OM_GL_CHECK();
+
         return "";
     }
 
     void uninitialize() override {
+        glDeleteBuffers(1, &m_verticesBuffer);
+        OM_GL_CHECK();
+
+        glDeleteBuffers(1, &m_indicesBuffer);
+        OM_GL_CHECK();
+
         if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         if (m_window) SDL_DestroyWindow(m_window);
         SDL_Quit();
@@ -162,27 +210,144 @@ public:
     }
 
     void renderTriangle(const Triangle& triangle) override {
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), triangle.vertices.data());
-        glEnableVertexAttribArray(0);
+        // not working on mac idk
+        setupUniforms();
+
+        GLuint vao{};
+        glGenVertexArrays(1, &vao);
+        OM_GL_CHECK();
+
+        glBindVertexArray(vao);
+        OM_GL_CHECK();
+
         glValidateProgram(m_programId);
+        OM_GL_CHECK();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), triangle.vertices.data());
+        OM_GL_CHECK();
+
+        glEnableVertexAttribArray(0);
+        OM_GL_CHECK();
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        OM_GL_CHECK();
+
+        glDisableVertexAttribArray(0);
+        OM_GL_CHECK();
+
+        glDeleteVertexArrays(1, &vao);
+        OM_GL_CHECK();
+    }
+
+    void renderFromBuffer() override {
+        setupUniforms();
+
+        GLuint vao{};
+        glGenVertexArrays(1, &vao);
+        OM_GL_CHECK();
+
+        glBindVertexArray(vao);
+        OM_GL_CHECK();
+
+        glValidateProgram(m_programId);
+        OM_GL_CHECK();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+        OM_GL_CHECK();
+
+        glEnableVertexAttribArray(0);
+        OM_GL_CHECK();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
+        OM_GL_CHECK();
+
+        glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
+        OM_GL_CHECK();
+
+        glDisableVertexAttribArray(0);
+        OM_GL_CHECK();
+
+        glDeleteVertexArrays(1, &vao);
+        OM_GL_CHECK();
     }
 
     void swapBuffers() override {
         SDL_GL_SwapWindow(m_window);
-        glClearColor(0.3f, 0.3f, 1.f, 1.f);
+
+        glClearColor(0.0f, 0.0f, 0.f, 1.f);
+        OM_GL_CHECK();
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        OM_GL_CHECK();
     }
 
     void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) override {
-        if (m_vertexShader) glDeleteShader(m_vertexShader);
-        if (m_fragmentShader) glDeleteShader(m_fragmentShader);
-        if (m_programId) glDeleteProgram(m_programId);
+        glDeleteProgram(m_programId);
+        OM_GL_CHECK();
 
-        createShader(GL_VERTEX_SHADER, vertexPath);
-        createShader(GL_FRAGMENT_SHADER, fragmentPath);
-        createProgram();
+        m_programId = glCreateProgram();
+        OM_GL_CHECK();
+
+        auto vertexShader{ createShader(GL_VERTEX_SHADER, vertexPath) };
+        auto fragmentShader{ createShader(GL_FRAGMENT_SHADER, fragmentPath) };
+
+        glLinkProgram(m_programId);
+        OM_GL_CHECK();
+
+        glBindAttribLocation(m_programId, 0, "a_position");
+        OM_GL_CHECK();
+
+        glUseProgram(m_programId);
+        OM_GL_CHECK();
+
+        glEnable(GL_DEPTH_TEST);
+        OM_GL_CHECK();
+
+        glDeleteShader(vertexShader);
+        OM_GL_CHECK();
+
+        glDeleteShader(fragmentShader);
+        OM_GL_CHECK();
+    }
+
+    void reloadIndicesBuffer(std::string_view indicesPath) override {
+        m_indices.clear();
+
+        std::ifstream in{ indicesPath.data() };
+        if (!in.is_open())
+            throw std::runtime_error{ "Error : reloadIndicesBuffer : bad open file"s };
+
+        while (in) {
+            GLuint index{};
+            in >> index;
+            if (!in) break;
+            m_indices.push_back(index);
+        }
+
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     m_indices.size() * sizeof(GLuint),
+                     m_indices.data(),
+                     GL_STATIC_DRAW);
+        OM_GL_CHECK();
+    }
+
+    void reloadVerticesBuffer(std::string_view verticesPath) override {
+        m_vertices.clear();
+
+        std::ifstream in{ verticesPath.data() };
+        if (!in.is_open())
+            throw std::runtime_error{ "Error : reloadVerticesBuffer : bad open file"s };
+
+        while (in) {
+            Vertex vertex{};
+            in >> vertex;
+            if (!in) break;
+            m_vertices.push_back(vertex);
+        }
+
+        glBufferData(
+            GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
+        OM_GL_CHECK();
     }
 
 private:
@@ -240,37 +405,65 @@ private:
             throw std::runtime_error{ "Error : createGLContext : bad gladLoad"s };
     }
 
-    void createProgram() {
-        m_programId = glCreateProgram();
-
-        glLinkProgram(m_programId);
-        glBindAttribLocation(m_programId, 0, "a_position");
-
-        glUseProgram(m_programId);
-        glEnable(GL_DEPTH_TEST);
-    }
-
-    void createShader(GLuint type, std::string_view filepath) {
+    [[nodiscard]] GLuint createShader(GLuint type, std::string_view filepath) const {
         GLuint shader{ glCreateShader(type) };
+        OM_GL_CHECK();
         std::string shaderSource{ readFile(filepath) };
         const char* source{ shaderSource.c_str() };
 
         glShaderSource(shader, 1, &source, nullptr);
+        OM_GL_CHECK();
+
         glCompileShader(shader);
+        OM_GL_CHECK();
 
         GLint compileStatus{};
         glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+        OM_GL_CHECK();
         if (compileStatus == 0) {
+            GLint infoLen{};
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+            OM_GL_CHECK();
+
+            std::vector<char> infoChars(static_cast<size_t>(infoLen));
+            glGetShaderInfoLog(shader, infoLen, nullptr, infoChars.data());
+            OM_GL_CHECK();
+
             glDeleteShader(shader);
-            throw std::runtime_error{ "Error : createShader : bad compile shader"s };
+            OM_GL_CHECK();
+
+            throw std::runtime_error{ "Error : createShader : bad compile " +
+                                      (type == GL_VERTEX_SHADER ? "vertex"s : "fragment"s) +
+                                      " shader\n"s + infoChars.data() };
         }
 
         glAttachShader(m_programId, shader);
+        OM_GL_CHECK();
 
-        if (type == GL_VERTEX_SHADER)
-            m_vertexShader = shader;
-        else if (type == GL_FRAGMENT_SHADER)
-            m_fragmentShader = shader;
+        return shader;
+    }
+
+    void setupUniforms() const {
+        auto scaleLocation{ glGetUniformLocation(m_programId, "scale") };
+        OM_GL_CHECK();
+
+        glUniform1f(scaleLocation, uniforms.scale);
+        OM_GL_CHECK();
+
+        auto timeLocation{ glGetUniformLocation(m_programId, "time") };
+        OM_GL_CHECK();
+
+        glUniform1f(timeLocation, uniforms.time);
+        OM_GL_CHECK();
+
+        auto centerLocation{ glGetUniformLocation(m_programId, "center") };
+        glUniform2f(centerLocation, uniforms.center.first, uniforms.center.second);
+
+        auto spiralSpeedLocation{ glGetUniformLocation(m_programId, "spiral_speed") };
+        glUniform1f(spiralSpeedLocation, uniforms.spiral_speed);
+
+        auto spiralDensity{ glGetUniformLocation(m_programId, "spiral_density") };
+        glUniform1f(spiralDensity, uniforms.spiral_density);
     }
 };
 
@@ -364,16 +557,16 @@ int main(int argc, const char* argv[]) {
             auto engine{ createEngine() };
             auto answer{ engine->initialize("") };
             if (!answer.empty()) { return EXIT_FAILURE; }
+            std::cout << "start app"sv << std::endl;
 
             HotReloadProvider hotReloadProvider{ args->configFilePath };
-            std::cout << "start app"sv << std::endl;
 
             std::string_view tempLibraryName{ "./temp.dll" };
             void* gameLibraryHandle{};
             std::unique_ptr<IGame, std::function<void(IGame * game)>> game;
 
             hotReloadProvider.addToCheck("game", [&]() {
-                std::cout << "waiting...\n"sv;
+                std::cout << "changing game\n"sv;
                 game = reloadGame(std::move(game),
                                   hotReloadProvider.getPath("game"),
                                   tempLibraryName,
@@ -382,36 +575,40 @@ int main(int argc, const char* argv[]) {
             });
 
             hotReloadProvider.addToCheck("vertex_shader", [&]() {
+                std::cout << "recompile shaders\n"sv;
                 engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
                                          hotReloadProvider.getPath("fragment_shader"));
             });
 
             hotReloadProvider.addToCheck("fragment_shader", [&]() {
+                std::cout << "recompile shaders\n"sv;
                 engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
                                          hotReloadProvider.getPath("fragment_shader"));
             });
 
-            hotReloadProvider.check();
+            hotReloadProvider.addToCheck("indices", [&]() {
+                std::cout << "reload indices buffer\n"sv;
+                engine->reloadIndicesBuffer(hotReloadProvider.getPath("indices"));
+            });
 
+            hotReloadProvider.addToCheck("vertices", [&]() {
+                std::cout << "reload vertices buffer\n"sv;
+                engine->reloadVerticesBuffer(hotReloadProvider.getPath("vertices"));
+            });
+
+            hotReloadProvider.check();
             game->initialize();
 
             bool isEnd{};
-            auto updateResult{ std::async(std::launch::async, &IGame::update, game.get()) };
-            hotReloadProvider.addToCheck("game", [&]() {
-                std::cout << "waiting...\n"sv;
-                updateResult.get();
-                game = reloadGame(std::move(game),
-                                  hotReloadProvider.getPath("game"),
-                                  tempLibraryName,
-                                  *engine,
-                                  gameLibraryHandle);
-            });
+            auto& scale = EngineImpl::uniforms.scale;
+            auto& time = EngineImpl::uniforms.time;
+            scale = 1.0;
+            auto now = std::chrono::steady_clock::now();
 
             while (!isEnd) {
                 hotReloadProvider.check();
                 Event event{};
                 while (engine->readInput(event)) {
-                    // std::cout << event << '\n';
 
                     if (event == Event::turn_off) {
                         std::cout << "exiting..."sv << std::endl;
@@ -422,19 +619,14 @@ int main(int argc, const char* argv[]) {
                     game->onEvent(event);
                 }
 
-                if (event == Event::turn_off) break;
-                if (!updateResult.valid())
-                    updateResult = std::async(std::launch::async, &IGame::update, game.get());
-                else if (updateResult.wait_for(0s) == std::future_status::ready) {
-                    // game->update();
-                    //      game->render();
-                    //                updateResult = std::async(std::launch::async, &IGame::update,
-                    //                game.get());
+                if (std::chrono::steady_clock::now() - now > 0.05s) {
+                    ++time;
+                    now = std::chrono::steady_clock::now();
                 }
 
-                Triangle t{ { -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.0, 0.8, -0.5 } };
-
-                engine->renderTriangle(t);
+                // engine->renderFromBuffer();
+                Triangle tr{ 0.0, 0.5, -1.0, 0.5, 0.0, -1.0, -0.5, 0.0, -1.0 };
+                engine->renderTriangle(tr);
                 engine->swapBuffers();
             }
 

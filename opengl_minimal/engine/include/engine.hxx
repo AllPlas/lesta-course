@@ -41,10 +41,14 @@ struct Vertex
     float z{};
 };
 
+std::ifstream& operator>>(std::ifstream& in, Vertex& vertex);
+
 struct Triangle
 {
     std::array<Vertex, 3> vertices{};
 };
+
+std::ifstream& operator>>(std::ifstream& in, Triangle& triangle);
 
 class IEngine
 {
@@ -54,8 +58,11 @@ public:
     virtual void uninitialize() = 0;
     virtual bool readInput(Event& event) = 0;
     virtual void renderTriangle(const Triangle& triangle) = 0;
+    virtual void renderFromBuffer() = 0;
     virtual void swapBuffers() = 0;
     virtual void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) = 0;
+    virtual void reloadVerticesBuffer(std::string_view verticesPath) = 0;
+    virtual void reloadIndicesBuffer(std::string_view indicesPath) = 0;
 };
 
 std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine();

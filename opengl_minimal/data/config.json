@@ -1,5 +1,7 @@
 {
   "game": "/Users/aleksey/lesta-course/opengl_minimal/cmake-build-debug/engine/libgame.dylib",
-  "vertex_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/vertex_shader.glsl",
-  "fragment_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/fragment_shader.glsl"
+  "vertex_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/vertex_shader.vert",
+  "fragment_shader": "/Users/aleksey/lesta-course/opengl_minimal/data/shaders/fragment_shader.frag",
+  "indices": "/Users/aleksey/lesta-course/opengl_minimal/data/indices.txt",
+  "vertices": "/Users/aleksey/lesta-course/opengl_minimal/data/vertices.txt"
 }

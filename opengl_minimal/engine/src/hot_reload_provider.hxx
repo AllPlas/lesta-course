@@ -37,6 +37,7 @@ private:
     void readFile();
     void extractGame();
     void extractShaders();
+    void extractBuffers();
 
     void configFileChanged();
 };

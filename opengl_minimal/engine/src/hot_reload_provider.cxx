@@ -18,6 +18,7 @@ HotReloadProvider::HotReloadProvider(fs::path path) : m_configPath{ std::move(pa
     readFile();
     extractGame();
     extractShaders();
+    extractBuffers();
 }
 
 void HotReloadProvider::check() {
@@ -61,6 +62,18 @@ void HotReloadProvider::extractShaders() {
     reloaderFragment.path = fragmentShader->value().as_string().c_str();
 }
 
+void HotReloadProvider::extractBuffers() {
+    json::value value(json::parse(m_fileData));
+
+    auto indicesBuffer{ value.as_object().find("indices") };
+    auto& reloaderIndices{ m_map[indicesBuffer->key()] };
+    reloaderIndices.path = indicesBuffer->value().as_string().c_str();
+
+    auto verticesBuffer{ value.as_object().find("vertices") };
+    auto& reloaderVertices{ m_map[verticesBuffer->key()] };
+    reloaderVertices.path = verticesBuffer->value().as_string().c_str();
+}
+
 void HotReloadProvider::addToCheck(std::string_view name, std::function<void()> fn) {
     auto& reloader{ m_map.at(name.data()) };
 
@@ -100,6 +113,7 @@ void HotReloadProvider::configFileChanged() {
     readFile();
     extractGame();
     extractShaders();
+    extractBuffers();
 }
 
 std::string_view HotReloadProvider::getPath(std::string_view name) const noexcept {
