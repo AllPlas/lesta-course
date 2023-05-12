@@ -294,6 +294,26 @@ public:
         glLinkProgram(m_programId);
         OM_GL_CHECK();
 
+        GLint linkedStatus{};
+        glGetProgramiv(m_programId, GL_LINK_STATUS, &linkedStatus);
+        OM_GL_CHECK();
+
+        if (linkedStatus == 0) {
+            GLint infoLen = 0;
+            glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &infoLen);
+            OM_GL_CHECK();
+
+            std::vector<char> infoChars(infoLen);
+            glGetProgramInfoLog(m_programId, infoLen, nullptr, infoChars.data());
+            OM_GL_CHECK();
+
+            glDeleteProgram(m_programId);
+            OM_GL_CHECK();
+
+            throw std::runtime_error{ "Error : recompileShaders : linking error\n"s +
+                                      infoChars.data() };
+        }
+
         glBindAttribLocation(m_programId, 0, "a_position");
         OM_GL_CHECK();
 
@@ -425,7 +445,7 @@ private:
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
             OM_GL_CHECK();
 
-            std::vector<char> infoChars(static_cast<size_t>(infoLen));
+            std::vector<char> infoChars(infoLen);
             glGetShaderInfoLog(shader, infoLen, nullptr, infoChars.data());
             OM_GL_CHECK();
 
@@ -600,18 +620,15 @@ int main(int argc, const char* argv[]) {
             game->initialize();
 
             bool isEnd{};
-            auto& scale = EngineImpl::uniforms.scale;
             auto& time = EngineImpl::uniforms.time;
-            scale = 1.0;
             auto now = std::chrono::steady_clock::now();
-
             while (!isEnd) {
                 hotReloadProvider.check();
                 Event event{};
                 while (engine->readInput(event)) {
 
                     if (event == Event::turn_off) {
-                        std::cout << "exiting..."sv << std::endl;
+                        std::cout << "exiting"sv << std::endl;
                         isEnd = true;
                         break;
                     }
@@ -624,9 +641,7 @@ int main(int argc, const char* argv[]) {
                     now = std::chrono::steady_clock::now();
                 }
 
-                // engine->renderFromBuffer();
-                Triangle tr{ 0.0, 0.5, -1.0, 0.5, 0.0, -1.0, -0.5, 0.0, -1.0 };
-                engine->renderTriangle(tr);
+                engine->renderFromBuffer();
                 engine->swapBuffers();
             }
 
