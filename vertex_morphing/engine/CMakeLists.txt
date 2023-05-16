@@ -12,7 +12,11 @@ find_package(Boost REQUIRED)
 add_executable(engine src/engine.cxx
         glad/src/glad.c
         src/hot_reload_provider.hxx
-        src/hot_reload_provider.cxx)
+        src/hot_reload_provider.cxx
+        src/program.cxx
+        src/program.hxx
+        src/opengl_check.cxx
+        src/opengl_check.hxx)
 
 set_target_properties(
         engine PROPERTIES

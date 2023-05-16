@@ -17,6 +17,7 @@
 
 #include "glad/glad.h"
 #include "hot_reload_provider.hxx"
+#include "program.hxx"
 
 #define OM_GL_CHECK()                                                                            \
     {                                                                                            \
@@ -145,7 +146,7 @@ public:
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
-    GLuint m_programId{};
+    Program m_program{};
 
     GLuint m_verticesBuffer{};
     GLuint m_indicesBuffer{};
@@ -210,7 +211,6 @@ public:
     }
 
     void renderTriangle(const Triangle& triangle) override {
-        // not working on mac idk
         setupUniforms();
 
         GLuint vao{};
@@ -220,15 +220,24 @@ public:
         glBindVertexArray(vao);
         OM_GL_CHECK();
 
-        glValidateProgram(m_programId);
+        GLuint vbo{};
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+                     triangle.vertices.size() * sizeof(Vertex),
+                     triangle.vertices.data(),
+                     GL_STATIC_DRAW);
+
+        glValidateProgram(*m_program);
         OM_GL_CHECK();
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), triangle.vertices.data());
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
         OM_GL_CHECK();
 
         glEnableVertexAttribArray(0);
         OM_GL_CHECK();
 
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         OM_GL_CHECK();
 
@@ -237,6 +246,8 @@ public:
 
         glDeleteVertexArrays(1, &vao);
         OM_GL_CHECK();
+
+        glDeleteBuffers(1, &vbo);
     }
 
     void renderFromBuffer() override {
@@ -249,7 +260,7 @@ public:
         glBindVertexArray(vao);
         OM_GL_CHECK();
 
-        glValidateProgram(m_programId);
+        glValidateProgram(*m_program);
         OM_GL_CHECK();
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
@@ -282,52 +293,8 @@ public:
     }
 
     void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) override {
-        glDeleteProgram(m_programId);
-        OM_GL_CHECK();
-
-        m_programId = glCreateProgram();
-        OM_GL_CHECK();
-
-        auto vertexShader{ createShader(GL_VERTEX_SHADER, vertexPath) };
-        auto fragmentShader{ createShader(GL_FRAGMENT_SHADER, fragmentPath) };
-
-        glLinkProgram(m_programId);
-        OM_GL_CHECK();
-
-        GLint linkedStatus{};
-        glGetProgramiv(m_programId, GL_LINK_STATUS, &linkedStatus);
-        OM_GL_CHECK();
-
-        if (linkedStatus == 0) {
-            GLint infoLen = 0;
-            glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &infoLen);
-            OM_GL_CHECK();
-
-            std::vector<char> infoChars(infoLen);
-            glGetProgramInfoLog(m_programId, infoLen, nullptr, infoChars.data());
-            OM_GL_CHECK();
-
-            glDeleteProgram(m_programId);
-            OM_GL_CHECK();
-
-            throw std::runtime_error{ "Error : recompileShaders : linking error\n"s +
-                                      infoChars.data() };
-        }
-
-        glBindAttribLocation(m_programId, 0, "a_position");
-        OM_GL_CHECK();
-
-        glUseProgram(m_programId);
-        OM_GL_CHECK();
-
-        glEnable(GL_DEPTH_TEST);
-        OM_GL_CHECK();
-
-        glDeleteShader(vertexShader);
-        OM_GL_CHECK();
-
-        glDeleteShader(fragmentShader);
-        OM_GL_CHECK();
+        m_program.recompileShaders(vertexPath, fragmentPath);
+        m_program.use();
     }
 
     void reloadIndicesBuffer(std::string_view indicesPath) override {
@@ -425,64 +392,26 @@ private:
             throw std::runtime_error{ "Error : createGLContext : bad gladLoad"s };
     }
 
-    [[nodiscard]] GLuint createShader(GLuint type, std::string_view filepath) const {
-        GLuint shader{ glCreateShader(type) };
-        OM_GL_CHECK();
-        std::string shaderSource{ readFile(filepath) };
-        const char* source{ shaderSource.c_str() };
-
-        glShaderSource(shader, 1, &source, nullptr);
-        OM_GL_CHECK();
-
-        glCompileShader(shader);
-        OM_GL_CHECK();
-
-        GLint compileStatus{};
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-        OM_GL_CHECK();
-        if (compileStatus == 0) {
-            GLint infoLen{};
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-            OM_GL_CHECK();
-
-            std::vector<char> infoChars(infoLen);
-            glGetShaderInfoLog(shader, infoLen, nullptr, infoChars.data());
-            OM_GL_CHECK();
-
-            glDeleteShader(shader);
-            OM_GL_CHECK();
-
-            throw std::runtime_error{ "Error : createShader : bad compile " +
-                                      (type == GL_VERTEX_SHADER ? "vertex"s : "fragment"s) +
-                                      " shader\n"s + infoChars.data() };
-        }
-
-        glAttachShader(m_programId, shader);
-        OM_GL_CHECK();
-
-        return shader;
-    }
-
     void setupUniforms() const {
-        auto scaleLocation{ glGetUniformLocation(m_programId, "scale") };
+        auto scaleLocation{ glGetUniformLocation(*m_program, "scale") };
         OM_GL_CHECK();
 
         glUniform1f(scaleLocation, uniforms.scale);
         OM_GL_CHECK();
 
-        auto timeLocation{ glGetUniformLocation(m_programId, "time") };
+        auto timeLocation{ glGetUniformLocation(*m_program, "time") };
         OM_GL_CHECK();
 
         glUniform1f(timeLocation, uniforms.time);
         OM_GL_CHECK();
 
-        auto centerLocation{ glGetUniformLocation(m_programId, "center") };
+        auto centerLocation{ glGetUniformLocation(*m_program, "center") };
         glUniform2f(centerLocation, uniforms.center.first, uniforms.center.second);
 
-        auto spiralSpeedLocation{ glGetUniformLocation(m_programId, "spiral_speed") };
+        auto spiralSpeedLocation{ glGetUniformLocation(*m_program, "spiral_speed") };
         glUniform1f(spiralSpeedLocation, uniforms.spiral_speed);
 
-        auto spiralDensity{ glGetUniformLocation(m_programId, "spiral_density") };
+        auto spiralDensity{ glGetUniformLocation(*m_program, "spiral_density") };
         glUniform1f(spiralDensity, uniforms.spiral_density);
     }
 };
@@ -571,6 +500,22 @@ std::optional<Args> parseCommandLine(int argc, const char* argv[]) {
     return args;
 }
 
+Vertex blendVertex(const Vertex& v1, const Vertex& v2, const float a) {
+    Vertex r{};
+    r.x = (1.0f - a) * v1.x + a * v2.x;
+    r.y = (1.0f - a) * v1.y + a * v2.y;
+    return r;
+}
+
+Triangle blendTriangle(const Triangle& tl, const Triangle& tr, const float a) {
+    Triangle triangle;
+    triangle.vertices[0] = blendVertex(tl.vertices[0], tr.vertices[0], a);
+    triangle.vertices[1] = blendVertex(tl.vertices[1], tr.vertices[1], a);
+    triangle.vertices[2] = blendVertex(tl.vertices[2], tr.vertices[2], a);
+
+    return triangle;
+}
+
 int main(int argc, const char* argv[]) {
     try {
         if (auto args{ parseCommandLine(argc, argv) }) {
@@ -622,6 +567,7 @@ int main(int argc, const char* argv[]) {
             bool isEnd{};
             auto& time = EngineImpl::uniforms.time;
             auto now = std::chrono::steady_clock::now();
+            auto timeAfterLoading{ now };
             while (!isEnd) {
                 hotReloadProvider.check();
                 Event event{};
@@ -641,7 +587,22 @@ int main(int argc, const char* argv[]) {
                     now = std::chrono::steady_clock::now();
                 }
 
-                engine->renderFromBuffer();
+                float alpha = std::sin(std::chrono::duration<float, std::ratio<1>>(
+                                           std::chrono::steady_clock::now() - timeAfterLoading)
+                                           .count()) *
+                                  0.5f +
+                              0.5f;
+
+                Triangle tr1{ 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, -0.5, 0.0, 0.0 };
+                Triangle tr2{ -0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0 };
+                Triangle tr3{ 0.0, -0.5, 0.0, -0.5, 0.0, 0.0, 0.5, 0.0, 0.0 };
+
+                Triangle render{ blendTriangle(tr1, tr2, alpha) };
+                Triangle render2{ blendTriangle(tr3, tr2, alpha) };
+
+                engine->renderTriangle(render);
+                engine->renderTriangle(render2);
+                // engine->renderFromBuffer();
                 engine->swapBuffers();
             }
 
