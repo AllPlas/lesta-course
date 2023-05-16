@@ -22,7 +22,7 @@ void main()
     // Вычисляем новые координаты спирали
     vec2 spiral = vec2(cos(angle), sin(angle)) * radius;
     if (v_position.z <= -0.5) {
-        frag_color = vec4(spiral, 1.0, 1.0);
+        frag_color = vec4(spiral, 0.0, 1.0);
     }
     else {
         frag_color = vec4(1.0);
