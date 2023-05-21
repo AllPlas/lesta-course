@@ -23,9 +23,7 @@ HotReloadProvider::HotReloadProvider(fs::path path) : m_configPath{ std::move(pa
 
 void HotReloadProvider::check() {
     configFileChanged();
-    for (const auto& [name, handler] : m_map) {
-        handler.fn();
-    }
+    std::ranges::for_each(m_map, [](const auto& el) { el.second.fn(); });
 }
 
 void HotReloadProvider::readFile() {

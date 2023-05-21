@@ -11,8 +11,8 @@
 
 using namespace std::literals;
 
-static std::string readFile(const std::string_view path) {
-    std::ifstream in{ path.data() };
+static std::string readFile(const fs::path path) {
+    std::ifstream in{ path };
     if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
 
     std::string result{};
@@ -27,10 +27,11 @@ static std::string readFile(const std::string_view path) {
     return result;
 }
 
-Program::Program(const std::string_view vertPath, const std::string_view fragPath) {
+Program::Program(const fs::path& vertPath, const fs::path& fragPath) {
     recompileShaders(vertPath, fragPath);
 }
-void Program::recompileShaders(const std::string_view vertPath, const std::string_view fragPath) {
+
+void Program::recompileShaders(const fs::path& vertPath, const fs::path& fragPath) {
     glDeleteProgram(m_program);
     openGLCheck();
 
@@ -73,16 +74,14 @@ void Program::recompileShaders(const std::string_view vertPath, const std::strin
     // glBindAttribLocation(m_program, 0, "a_position");
     // openGLCheck();
 
-    glEnable(GL_DEPTH_TEST);
-    openGLCheck();
-
     glDeleteShader(vertexShader);
     openGLCheck();
 
     glDeleteShader(fragmentShader);
     openGLCheck();
 }
-GLuint Program::compileShader(GLenum type, const std::string_view& path) {
+
+GLuint Program::compileShader(GLenum type, const fs::path& path) {
     GLuint shader{ glCreateShader(type) };
     openGLCheck();
     std::string shaderSource{ readFile(path) };
@@ -116,7 +115,10 @@ GLuint Program::compileShader(GLenum type, const std::string_view& path) {
 
     return shader;
 }
-void Program::use() const { glUseProgram(m_program); }
+void Program::use() const {
+    glUseProgram(m_program);
+    openGLCheck();
+}
 
 GLuint Program::operator*() const noexcept { return m_program; }
 

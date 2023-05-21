@@ -39,6 +39,9 @@ struct Vertex
     float x{};
     float y{};
     float z{};
+
+    float texX{};
+    float texY{};
 };
 
 std::ifstream& operator>>(std::ifstream& in, Vertex& vertex);

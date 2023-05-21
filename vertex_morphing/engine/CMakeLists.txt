@@ -8,15 +8,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Boost REQUIRED)
+find_package(PNG REQUIRED)
+find_package(glm REQUIRED)
 
-add_executable(engine src/engine.cxx
+add_executable(engine
+        src/engine.cxx
         glad/src/glad.c
         src/hot_reload_provider.hxx
         src/hot_reload_provider.cxx
         src/program.cxx
         src/program.hxx
         src/opengl_check.cxx
-        src/opengl_check.hxx)
+        src/opengl_check.hxx
+        src/texture.cxx
+        src/texture.hxx)
 
 set_target_properties(
         engine PROPERTIES
@@ -25,7 +30,7 @@ set_target_properties(
 
 target_include_directories(engine PUBLIC include)
 target_include_directories(engine PRIVATE glad/include)
-target_link_libraries(engine PRIVATE SDL3::SDL3-shared OpenGL::GL boost::boost)
+target_link_libraries(engine PRIVATE SDL3::SDL3-shared OpenGL::GL PNG::PNG boost::boost glm::glm)
 
 if (WIN32)
     add_custom_command(TARGET engine POST_BUILD

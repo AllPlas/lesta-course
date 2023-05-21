@@ -1,13 +1,12 @@
 #version 410 core
 
-layout(location = 0) in vec3 a_position;
+layout(location = 0) in vec3 vertPosition;
+layout(location = 1) in vec2 vertTexCoord;
 
-out vec4 v_position;
-
-uniform float scale;
+out vec2 texCoord;
 
 void main()
 {
-    v_position = vec4(a_position * scale, 1.0);
-    gl_Position = v_position;
+    texCoord = vertTexCoord;
+    gl_Position = vec4(vertPosition, 1.0);
 }

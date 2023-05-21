@@ -9,44 +9,17 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <glad/glad.h>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
 
-#include "glad/glad.h"
 #include "hot_reload_provider.hxx"
+#include "opengl_check.hxx"
 #include "program.hxx"
-
-#define OM_GL_CHECK()                                                                            \
-    {                                                                                            \
-        const GLenum err = glGetError();                                                         \
-        if (err != GL_NO_ERROR) {                                                                \
-            switch (err) {                                                                       \
-            case GL_INVALID_ENUM:                                                                \
-                std::cerr << "GL_INVALID_ENUM" << std::endl;                                     \
-                break;                                                                           \
-            case GL_INVALID_VALUE:                                                               \
-                std::cerr << "GL_INVALID_VALUE" << std::endl;                                    \
-                break;                                                                           \
-            case GL_INVALID_OPERATION:                                                           \
-                std::cerr << "GL_INVALID_OPERATION" << std::endl;                                \
-                break;                                                                           \
-            case GL_INVALID_FRAMEBUFFER_OPERATION:                                               \
-                std::cerr << "GL_INVALID_FRAMEBUFFER_OPERATION" << std::endl;                    \
-                break;                                                                           \
-            case GL_OUT_OF_MEMORY:                                                               \
-                std::cerr << "GL_OUT_OF_MEMORY" << std::endl;                                    \
-                break;                                                                           \
-            default:                                                                             \
-                std::cerr << "UNKNOWN ERROR" << std::endl;                                       \
-                break;                                                                           \
-            }                                                                                    \
-            std::cerr << __FILE__ << ':' << __LINE__ << '(' << __FUNCTION__ << ')' << std::endl; \
-            assert(false);                                                                       \
-        }                                                                                        \
-    }
+#include "texture.hxx"
 
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -75,7 +48,7 @@ std::ostream& operator<<(std::ostream& out, Event event) {
 }
 
 std::ifstream& operator>>(std::ifstream& in, Vertex& vertex) {
-    in >> vertex.x >> vertex.y >> vertex.z;
+    in >> vertex.x >> vertex.y >> vertex.z >> vertex.texX >> vertex.texY;
     return in;
 }
 
@@ -148,11 +121,15 @@ private:
     SDL_GLContext m_glContext{};
     Program m_program{};
 
+    GLuint m_verticesArray{};
+
     GLuint m_verticesBuffer{};
     GLuint m_indicesBuffer{};
 
     std::vector<Vertex> m_vertices{};
     std::vector<GLuint> m_indices{};
+
+    Texture m_texture{};
 
 public:
     EngineImpl() = default;
@@ -165,26 +142,44 @@ public:
         createGLContext();
 
         glGenBuffers(1, &m_verticesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glGenBuffers(1, &m_indicesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glBindBuffer(GL_ARRAY_BUFFER, m_verticesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
+
+        glGenVertexArrays(1, &m_verticesArray);
+        openGLCheck();
+
+        glBindVertexArray(m_verticesArray);
+        openGLCheck();
+
+        glEnable(GL_DEPTH_TEST);
+        openGLCheck();
+
+        glEnable(GL_BLEND);
+        openGLCheck();
+
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        openGLCheck();
 
         return "";
     }
 
     void uninitialize() override {
         glDeleteBuffers(1, &m_verticesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glDeleteBuffers(1, &m_indicesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
+
+        glDeleteVertexArrays(1, &m_verticesArray);
+        openGLCheck();
 
         if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         if (m_window) SDL_DestroyWindow(m_window);
@@ -211,15 +206,6 @@ public:
     }
 
     void renderTriangle(const Triangle& triangle) override {
-        setupUniforms();
-
-        GLuint vao{};
-        glGenVertexArrays(1, &vao);
-        OM_GL_CHECK();
-
-        glBindVertexArray(vao);
-        OM_GL_CHECK();
-
         GLuint vbo{};
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -229,76 +215,83 @@ public:
                      GL_STATIC_DRAW);
 
         glValidateProgram(*m_program);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glEnableVertexAttribArray(0);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glDisableVertexAttribArray(0);
-        OM_GL_CHECK();
-
-        glDeleteVertexArrays(1, &vao);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glDeleteBuffers(1, &vbo);
     }
 
     void renderFromBuffer() override {
-        setupUniforms();
-
-        GLuint vao{};
-        glGenVertexArrays(1, &vao);
-        OM_GL_CHECK();
-
-        glBindVertexArray(vao);
-        OM_GL_CHECK();
-
         glValidateProgram(*m_program);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glEnableVertexAttribArray(0);
-        OM_GL_CHECK();
+        openGLCheck();
+
+        glVertexAttribPointer(1,
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              sizeof(Vertex),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex, texX)));
+        openGLCheck();
+
+        glEnableVertexAttribArray(1);
+        openGLCheck();
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
-        OM_GL_CHECK();
-
-        glDisableVertexAttribArray(0);
-        OM_GL_CHECK();
-
-        glDeleteVertexArrays(1, &vao);
-        OM_GL_CHECK();
+        openGLCheck();
     }
 
     void swapBuffers() override {
         SDL_GL_SwapWindow(m_window);
 
         glClearColor(0.0f, 0.0f, 0.f, 1.f);
-        OM_GL_CHECK();
+        openGLCheck();
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        OM_GL_CHECK();
+        openGLCheck();
     }
 
     void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) override {
         m_program.recompileShaders(vertexPath, fragmentPath);
         m_program.use();
+
+        auto texture{ glGetUniformLocation(*m_program, "texSampler") };
+        openGLCheck();
+
+        glUniform1i(texture, 0);
+        openGLCheck();
+
+        glActiveTexture(GL_TEXTURE0);
+        openGLCheck();
+
+        m_texture.load("/Users/aleksey/lesta-course/vertex_morphing/data/crate1_diffuse.png");
+        m_texture.bind();
     }
 
     void reloadIndicesBuffer(std::string_view indicesPath) override {
         m_indices.clear();
+        glBindVertexArray(0);
+        openGLCheck();
 
         std::ifstream in{ indicesPath.data() };
         if (!in.is_open())
@@ -315,7 +308,10 @@ public:
                      m_indices.size() * sizeof(GLuint),
                      m_indices.data(),
                      GL_STATIC_DRAW);
-        OM_GL_CHECK();
+        openGLCheck();
+
+        glBindVertexArray(m_verticesArray);
+        openGLCheck();
     }
 
     void reloadVerticesBuffer(std::string_view verticesPath) override {
@@ -334,7 +330,7 @@ public:
 
         glBufferData(
             GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
-        OM_GL_CHECK();
+        openGLCheck();
     }
 
 private:
@@ -390,29 +386,6 @@ private:
 
         if (gladLoadGLES2Loader(load_gl_pointer) == 0)
             throw std::runtime_error{ "Error : createGLContext : bad gladLoad"s };
-    }
-
-    void setupUniforms() const {
-        auto scaleLocation{ glGetUniformLocation(*m_program, "scale") };
-        OM_GL_CHECK();
-
-        glUniform1f(scaleLocation, uniforms.scale);
-        OM_GL_CHECK();
-
-        auto timeLocation{ glGetUniformLocation(*m_program, "time") };
-        OM_GL_CHECK();
-
-        glUniform1f(timeLocation, uniforms.time);
-        OM_GL_CHECK();
-
-        auto centerLocation{ glGetUniformLocation(*m_program, "center") };
-        glUniform2f(centerLocation, uniforms.center.first, uniforms.center.second);
-
-        auto spiralSpeedLocation{ glGetUniformLocation(*m_program, "spiral_speed") };
-        glUniform1f(spiralSpeedLocation, uniforms.spiral_speed);
-
-        auto spiralDensity{ glGetUniformLocation(*m_program, "spiral_density") };
-        glUniform1f(spiralDensity, uniforms.spiral_density);
     }
 };
 
@@ -504,6 +477,11 @@ Vertex blendVertex(const Vertex& v1, const Vertex& v2, const float a) {
     Vertex r{};
     r.x = (1.0f - a) * v1.x + a * v2.x;
     r.y = (1.0f - a) * v1.y + a * v2.y;
+    r.z = (1.0f - a) * v1.z + a * v2.z;
+
+    r.texX = (1.0f - a) * v1.texX + a * v2.texX;
+    r.texY = (1.0f - a) * v1.texY + a * v2.texY;
+
     return r;
 }
 
@@ -600,9 +578,9 @@ int main(int argc, const char* argv[]) {
                 Triangle render{ blendTriangle(tr1, tr2, alpha) };
                 Triangle render2{ blendTriangle(tr3, tr2, alpha) };
 
-                engine->renderTriangle(render);
-                engine->renderTriangle(render2);
-                // engine->renderFromBuffer();
+                //   engine->renderTriangle(render);
+                //   engine->renderTriangle(render2);
+                engine->renderFromBuffer();
                 engine->swapBuffers();
             }
 
