@@ -1,12 +1,15 @@
 #version 410 core
 
-layout(location = 0) in vec3 vertPosition;
+layout(location = 0) in vec2 vertPosition;
 layout(location = 1) in vec2 vertTexCoord;
 
 out vec2 texCoord;
 
+uniform mat3 matrix;
+
 void main()
 {
     texCoord = vertTexCoord;
-    gl_Position = vec4(vertPosition, 1.0);
+    vec3 pos =  matrix * vec3(vertPosition, 1.0);
+    gl_Position = vec4(pos.x, pos.y, 0.0, 1.0);
 }

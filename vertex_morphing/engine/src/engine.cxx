@@ -4,6 +4,9 @@
 #include "engine.hxx"
 
 #include <boost/program_options.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <SDL3/SDL.h>
 #include <cassert>
@@ -105,16 +108,7 @@ static std::string readFile(const fs::path& path) {
 class EngineImpl final : public IEngine
 {
 public:
-    struct Uniforms
-    {
-        float scale{};
-        float time{};
-        std::pair<float, float> center{};
-        float spiral_speed{};
-        float spiral_density{};
-    };
-
-    inline static Uniforms uniforms{ 1.0, 1.0, {}, 1.0, 1.0 };
+    glm::mat3 matrix{};
 
 private:
     SDL_Window* m_window{};
@@ -168,6 +162,9 @@ public:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         openGLCheck();
 
+        // glViewport(0, 0, 640, 480);
+        // openGLCheck();
+
         return "";
     }
 
@@ -206,6 +203,10 @@ public:
     }
 
     void renderTriangle(const Triangle& triangle) override {
+        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
+
+        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(matrix));
+
         GLuint vbo{};
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -214,23 +215,39 @@ public:
                      triangle.vertices.data(),
                      GL_STATIC_DRAW);
 
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glValidateProgram(*m_program);
         openGLCheck();
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
         openGLCheck();
 
         glEnableVertexAttribArray(0);
         openGLCheck();
 
+        glVertexAttribPointer(1,
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              sizeof(Vertex),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex, texX)));
+        openGLCheck();
+
+        glEnableVertexAttribArray(1);
+        openGLCheck();
+
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        openGLCheck();
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
         openGLCheck();
 
-        glDisableVertexAttribArray(0);
-        openGLCheck();
-
         glDeleteBuffers(1, &vbo);
+    }
+
+    void renderTriangle(const Triangle& triangle, const Texture& texture) override {
+        texture.bind();
+        renderTriangle(triangle);
     }
 
     void renderFromBuffer() override {
@@ -283,9 +300,6 @@ public:
 
         glActiveTexture(GL_TEXTURE0);
         openGLCheck();
-
-        m_texture.load("/Users/aleksey/lesta-course/vertex_morphing/data/crate1_diffuse.png");
-        m_texture.bind();
     }
 
     void reloadIndicesBuffer(std::string_view indicesPath) override {
@@ -477,7 +491,6 @@ Vertex blendVertex(const Vertex& v1, const Vertex& v2, const float a) {
     Vertex r{};
     r.x = (1.0f - a) * v1.x + a * v2.x;
     r.y = (1.0f - a) * v1.y + a * v2.y;
-    r.z = (1.0f - a) * v1.z + a * v2.z;
 
     r.texX = (1.0f - a) * v1.texX + a * v2.texX;
     r.texY = (1.0f - a) * v1.texY + a * v2.texY;
@@ -492,6 +505,20 @@ Triangle blendTriangle(const Triangle& tl, const Triangle& tr, const float a) {
     triangle.vertices[2] = blendVertex(tl.vertices[2], tr.vertices[2], a);
 
     return triangle;
+}
+
+Triangle getTransformedTriangle(const Triangle& t, const glm::mat3& matrix) {
+    Triangle result{ t };
+
+    std::ranges::for_each(result.vertices, [&](Vertex& v) {
+        glm::vec3 posSource{ v.x, v.y, 1.f };
+        glm::vec3 posResult = matrix * posSource;
+
+        v.x = posResult[0];
+        v.y = posResult[1];
+    });
+
+    return result;
 }
 
 int main(int argc, const char* argv[]) {
@@ -543,26 +570,47 @@ int main(int argc, const char* argv[]) {
             game->initialize();
 
             bool isEnd{};
-            auto& time = EngineImpl::uniforms.time;
             auto now = std::chrono::steady_clock::now();
             auto timeAfterLoading{ now };
+
+            float posX{};
+            float posY{};
+
+            float speedX{};
+            float speedY{};
+
+            float angle{};
+
+            Texture tank{};
+            tank.load(hotReloadProvider.getPath("tank_texture"));
+
             while (!isEnd) {
                 hotReloadProvider.check();
                 Event event{};
                 while (engine->readInput(event)) {
-
+                    std::cout << event << '\n';
                     if (event == Event::turn_off) {
                         std::cout << "exiting"sv << std::endl;
                         isEnd = true;
                         break;
                     }
 
-                    game->onEvent(event);
-                }
+                    //                  game->onEvent(event);
 
-                if (std::chrono::steady_clock::now() - now > 0.05s) {
-                    ++time;
-                    now = std::chrono::steady_clock::now();
+                    if (event == Event::up_pressed) { speedY = 0.05; }
+                    else if (event == Event::down_pressed) { speedY = -0.05; }
+                    else if (event == Event::up_released || event == Event::down_released) {
+                        speedY = 0.0;
+                    }
+
+                    if (event == Event::left_pressed) { speedX = -0.05; }
+                    else if (event == Event::right_pressed) { speedX = 0.05; }
+                    else if (event == Event::left_released || event == Event::right_released) {
+                        speedX = 0.0;
+                    }
+
+                    if (event == Event::space_pressed) { angle += 0.05; }
+                    if (event == Event::lctrl_pressed) { angle -= 0.05; }
                 }
 
                 float alpha = std::sin(std::chrono::duration<float, std::ratio<1>>(
@@ -571,16 +619,55 @@ int main(int argc, const char* argv[]) {
                                   0.5f +
                               0.5f;
 
-                Triangle tr1{ 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, -0.5, 0.0, 0.0 };
-                Triangle tr2{ -0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0 };
+                auto elapsed = std::chrono::duration<float, std::ratio<1>>(
+                                   std::chrono::steady_clock::now() - now)
+                                   .count();
+                now = std::chrono::steady_clock::now();
+
+                posY += speedY * elapsed;
+                posX += speedX * elapsed;
+
+                Triangle tr1{ -0.4, 0.4, 1.0, 0.0,  0.0, 0.4, 0.4, 1.0,
+                              1.0,  0.0, 0.4, -0.4, 1.0, 1.0, 1.0 };
+                Triangle tr2{ -0.4, 0.4, 1.0,  0.0,  0.0, 0.4, -0.4, 1.0,
+                              1.0,  1.0, -0.4, -0.4, 1.0, 0.0, 1.0 };
+
                 Triangle tr3{ 0.0, -0.5, 0.0, -0.5, 0.0, 0.0, 0.5, 0.0, 0.0 };
 
-                Triangle render{ blendTriangle(tr1, tr2, alpha) };
-                Triangle render2{ blendTriangle(tr3, tr2, alpha) };
+                //    Triangle render{ blendTriangle(tr1, tr3, alpha) };
+                //    Triangle render2{ blendTriangle(tr2, tr3, alpha) };
 
-                //   engine->renderTriangle(render);
-                //   engine->renderTriangle(render2);
-                engine->renderFromBuffer();
+                glm::mat3 move{ 0.0f };
+                move[0][0] = 1;
+                move[1][1] = 1;
+                move[2][0] = posX * std::cos(angle) - posY * std::sin(angle);
+                move[2][1] = posX * std::sin(angle) + posY * std::cos(angle);
+                move[2][2] = 1;
+
+                glm::mat3 aspect{ 0.0f };
+                aspect[0][0] = 1;
+                aspect[0][1] = 0.f;
+                aspect[1][0] = 0.f;
+                aspect[1][1] = 640.f / 480.f;
+                aspect[2][2] = 1;
+
+                glm::mat3 rotation{ 0.0f };
+                rotation[0][0] = std::cos(angle);
+                rotation[0][1] = std::sin(angle);
+                rotation[1][0] = -std::sin(angle);
+                rotation[1][1] = std::cos(angle);
+                rotation[2][2] = 1;
+
+                glm::mat3 result{ move * aspect * rotation };
+
+                auto d{ dynamic_cast<EngineImpl*>(engine.get()) };
+                d->matrix = result;
+
+                // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
+                // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
+                engine->renderTriangle(tr1, tank);
+                engine->renderTriangle(tr2, tank);
+                // engine->renderFromBuffer();
                 engine->swapBuffers();
             }
 
@@ -594,5 +681,6 @@ int main(int argc, const char* argv[]) {
     catch (...) {
         std::cerr << "Unknown error"sv << '\n';
     }
+
     return EXIT_FAILURE;
 }

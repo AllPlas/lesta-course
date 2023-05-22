@@ -35,9 +35,7 @@ public:
 
 private:
     void readFile();
-    void extractGame();
-    void extractShaders();
-    void extractBuffers();
+    void extractData();
 
     void configFileChanged();
 };

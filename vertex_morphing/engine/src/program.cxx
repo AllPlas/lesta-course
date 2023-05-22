@@ -1,5 +1,5 @@
 //
-// Created by Алексей Крукович on 16.05.23.
+// Created by Алексей Крукович лох on 16.05.23.
 //
 
 #include "program.hxx"

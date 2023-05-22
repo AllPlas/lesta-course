@@ -16,14 +16,14 @@ namespace json = boost::json;
 
 HotReloadProvider::HotReloadProvider(fs::path path) : m_configPath{ std::move(path) } {
     readFile();
-    extractGame();
-    extractShaders();
-    extractBuffers();
+    extractData();
 }
 
 void HotReloadProvider::check() {
     configFileChanged();
-    std::ranges::for_each(m_map, [](const auto& el) { el.second.fn(); });
+    std::ranges::for_each(m_map, [](const auto& el) {
+        if (el.second.fn) el.second.fn();
+    });
 }
 
 void HotReloadProvider::readFile() {
@@ -38,38 +38,6 @@ void HotReloadProvider::readFile() {
 
         m_fileData += buf;
     }
-}
-
-void HotReloadProvider::extractGame() {
-    json::value value(json::parse(m_fileData));
-    auto game{ value.as_object().find("game") };
-
-    auto& reloader{ m_map[game->key()] };
-    reloader.path = game->value().as_string().c_str();
-}
-
-void HotReloadProvider::extractShaders() {
-    json::value value(json::parse(m_fileData));
-
-    auto vertexShader{ value.as_object().find("vertex_shader") };
-    auto& reloaderVertex{ m_map[vertexShader->key()] };
-    reloaderVertex.path = vertexShader->value().as_string().c_str();
-
-    auto fragmentShader{ value.as_object().find("fragment_shader") };
-    auto& reloaderFragment{ m_map[fragmentShader->key()] };
-    reloaderFragment.path = fragmentShader->value().as_string().c_str();
-}
-
-void HotReloadProvider::extractBuffers() {
-    json::value value(json::parse(m_fileData));
-
-    auto indicesBuffer{ value.as_object().find("indices") };
-    auto& reloaderIndices{ m_map[indicesBuffer->key()] };
-    reloaderIndices.path = indicesBuffer->value().as_string().c_str();
-
-    auto verticesBuffer{ value.as_object().find("vertices") };
-    auto& reloaderVertices{ m_map[verticesBuffer->key()] };
-    reloaderVertices.path = verticesBuffer->value().as_string().c_str();
 }
 
 void HotReloadProvider::addToCheck(std::string_view name, std::function<void()> fn) {
@@ -109,11 +77,15 @@ void HotReloadProvider::configFileChanged() {
     }
 
     readFile();
-    extractGame();
-    extractShaders();
-    extractBuffers();
+    extractData();
 }
 
 std::string_view HotReloadProvider::getPath(std::string_view name) const noexcept {
     return m_map.at(name.data()).path.c_str();
+}
+void HotReloadProvider::extractData() {
+    auto value(json::parse(m_fileData));
+
+    for (const auto& [name, path] : value.as_object())
+        m_map[name].path = path.as_string().c_str();
 }

@@ -53,6 +53,8 @@ struct Triangle
 
 std::ifstream& operator>>(std::ifstream& in, Triangle& triangle);
 
+class Texture;
+
 class IEngine
 {
 public:
@@ -61,6 +63,7 @@ public:
     virtual void uninitialize() = 0;
     virtual bool readInput(Event& event) = 0;
     virtual void renderTriangle(const Triangle& triangle) = 0;
+    virtual void renderTriangle(const Triangle& triangle, const Texture& texture) = 0;
     virtual void renderFromBuffer() = 0;
     virtual void swapBuffers() = 0;
     virtual void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) = 0;
