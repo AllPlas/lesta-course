@@ -15,30 +15,25 @@ Texture::Texture() = default;
 Texture::~Texture() { glDeleteTextures(1, &m_texture); }
 
 void Texture::load(const fs::path& path) {
+    gil::rgba8_image_t image{};
+    gil::read_and_convert_image(path, image, gil::png_tag{});
+
+    load(gil::interleaved_view_get_raw_data(gil::view(image)), image.width(), image.height());
+}
+
+void Texture::load(const void* pixels, std::size_t width, std::size_t height) {
     glDeleteTextures(1, &m_texture);
     openGLCheck();
 
     glGenTextures(1, &m_texture);
     openGLCheck();
 
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    openGLCheck();
+    bind();
 
-    gil::rgba8_image_t image{};
-    gil::read_and_convert_image(path, image, gil::png_tag{});
+    m_width = width;
+    m_height = height;
 
-    m_width = image.width();
-    m_height = image.height();
-
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGBA,
-                 image.width(),
-                 image.height(),
-                 0,
-                 GL_RGBA,
-                 GL_UNSIGNED_BYTE,
-                 gil::interleaved_view_get_raw_data(gil::view(image)));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     openGLCheck();
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -57,4 +52,4 @@ int Texture::getHeight() const noexcept { return m_height; }
 void Texture::bind() const {
     glBindTexture(GL_TEXTURE_2D, m_texture);
     openGLCheck();
-};
+}

@@ -83,9 +83,18 @@ void HotReloadProvider::configFileChanged() {
 std::string_view HotReloadProvider::getPath(std::string_view name) const noexcept {
     return m_map.at(name.data()).path.c_str();
 }
+
 void HotReloadProvider::extractData() {
     auto value(json::parse(m_fileData));
 
     for (const auto& [name, path] : value.as_object())
         m_map[name].path = path.as_string().c_str();
+}
+
+void HotReloadProvider::setPath(fs::path path) { s_path = std::move(path); }
+
+HotReloadProvider& HotReloadProvider::getInstance() {
+    static HotReloadProvider provider{ std::move(s_path) };
+
+    return provider;
 }

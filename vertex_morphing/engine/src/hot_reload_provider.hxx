@@ -27,13 +27,19 @@ private:
     std::string m_fileData{};
     std::unordered_map<std::string, Reloader<std::function<void()>>> m_map{};
 
+    inline static fs::path s_path{};
+
 public:
-    explicit HotReloadProvider(fs::path path);
+    static void setPath(fs::path path);
+    static HotReloadProvider& getInstance();
+
     void addToCheck(std::string_view name, std::function<void()> fn);
     void check();
     std::string_view getPath(std::string_view name) const noexcept;
 
 private:
+    explicit HotReloadProvider(fs::path path);
+
     void readFile();
     void extractData();
 

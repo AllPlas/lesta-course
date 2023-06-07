@@ -5,11 +5,14 @@
 #ifndef SDL_ENGINE_EXE_ENGINE_HXX
 #define SDL_ENGINE_EXE_ENGINE_HXX
 
+#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <memory>
 #include <string>
 #include <string_view>
+
+#include "../src/buffer.hxx"
 
 enum class Event
 {
@@ -34,18 +37,6 @@ enum class Event
 
 std::ostream& operator<<(std::ostream& out, Event event);
 
-struct Vertex
-{
-    float x{};
-    float y{};
-    float z{};
-
-    float texX{};
-    float texY{};
-};
-
-std::ifstream& operator>>(std::ifstream& in, Vertex& vertex);
-
 struct Triangle
 {
     std::array<Vertex, 3> vertices{};
@@ -69,10 +60,20 @@ public:
     virtual void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) = 0;
     virtual void reloadVerticesBuffer(std::string_view verticesPath) = 0;
     virtual void reloadIndicesBuffer(std::string_view indicesPath) = 0;
+
+    virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint16_t>& indexBuffer,
+                        Texture* texture,
+                        std::uint16_t startIndex,
+                        std::size_t numVertices) = 0;
 };
 
-std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine();
+using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;
+
+EnginePtr createEngine();
 void destroyEngine(IEngine* e);
+
+IEngine* getEngineInstance();
 
 class IGame
 {

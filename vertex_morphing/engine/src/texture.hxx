@@ -15,14 +15,15 @@ class Texture final
 {
 private:
     GLuint m_texture;
-    int m_width{};
-    int m_height{};
+    std::size_t m_width{};
+    std::size_t m_height{};
 
 public:
     Texture();
     ~Texture();
 
     void load(const fs::path& path);
+    void load(const void* pixels, std::size_t width, std::size_t height);
     void bind() const;
 
     int getWidth() const noexcept;

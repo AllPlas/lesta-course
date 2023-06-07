@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include "hot_reload_provider.hxx"
+#include "imgui_impl_sdl3.hxx"
 #include "opengl_check.hxx"
 #include "program.hxx"
 #include "texture.hxx"
@@ -48,11 +49,6 @@ static const std::unordered_map<Event, std::string_view> s_eventToStringView{
 std::ostream& operator<<(std::ostream& out, Event event) {
     out << s_eventToStringView.at(event);
     return out;
-}
-
-std::ifstream& operator>>(std::ifstream& in, Vertex& vertex) {
-    in >> vertex.x >> vertex.y >> vertex.z >> vertex.texX >> vertex.texY;
-    return in;
 }
 
 std::ifstream& operator>>(std::ifstream& in, Triangle& triangle) {
@@ -162,8 +158,12 @@ public:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         openGLCheck();
 
-        // glViewport(0, 0, 640, 480);
-        // openGLCheck();
+        glViewport(0, 0, 800, 600);
+        openGLCheck();
+
+        SDL_GL_SetSwapInterval(1);
+
+        ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
 
         return "";
     }
@@ -186,6 +186,8 @@ public:
     bool readInput(Event& event) override {
         SDL_Event sdlEvent;
         if (SDL_PollEvent(&sdlEvent)) {
+            ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
+
             if (sdlEvent.type == SDL_EVENT_QUIT) {
                 event = Event::turn_off;
                 return true;
@@ -279,6 +281,16 @@ public:
     }
 
     void swapBuffers() override {
+        ImGui_ImplSDL3_NewFrame(m_window);
+
+        bool show_demo_window{ true };
+
+        ImGui::ShowDemoWindow(&show_demo_window);
+        ImGui::Text("Hello");
+        ImGui::Render();
+        ImDrawData* drawData = ImGui::GetDrawData();
+        imgui_to_engine_render(drawData, this);
+
         SDL_GL_SwapWindow(m_window);
 
         glClearColor(0.0f, 0.0f, 0.f, 1.f);
@@ -347,6 +359,56 @@ public:
         openGLCheck();
     }
 
+    void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                const IndexBuffer<std::uint16_t>& indexBuffer,
+                Texture* texture,
+                std::uint16_t startIndex,
+                std::size_t numVertices) override {
+
+        glEnable(GL_BLEND);
+        openGLCheck();
+
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        openGLCheck();
+
+        texture->bind();
+        glActiveTexture(GL_TEXTURE0);
+        vertexBuffer.bind();
+        indexBuffer.bind();
+
+        glEnableVertexAttribArray(0);
+        openGLCheck();
+
+        glEnableVertexAttribArray(1);
+        openGLCheck();
+
+        glEnableVertexAttribArray(2);
+        openGLCheck();
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
+        openGLCheck();
+
+        glVertexAttribPointer(1,
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
+        openGLCheck();
+
+        glVertexAttribPointer(2,
+                              4,
+                              GL_UNSIGNED_BYTE,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
+        openGLCheck();
+
+        glDrawElements(
+            GL_TRIANGLES, static_cast<GLsizei>(numVertices), GL_UNSIGNED_SHORT, nullptr);
+        openGLCheck();
+    }
+
 private:
     static void initSDL() {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
@@ -354,7 +416,7 @@ private:
     }
 
     static SDL_Window* createWindow() {
-        if (auto window{ SDL_CreateWindow("OpenGL test", 640, 480, SDL_WINDOW_OPENGL) };
+        if (auto window{ SDL_CreateWindow("OpenGL test", 800, 600, SDL_WINDOW_OPENGL) };
             window != nullptr)
             return window;
 
@@ -404,8 +466,9 @@ private:
 };
 
 static bool s_alreadyExist{ false };
+IEngine* g_enginePtr{};
 
-std::unique_ptr<IEngine, std::function<void(IEngine*)>> createEngine() {
+EnginePtr createEngine() {
     if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
     s_alreadyExist = true;
     return { new EngineImpl{}, destroyEngine };
@@ -416,6 +479,11 @@ void destroyEngine(IEngine* e) {
     if (e == nullptr) throw std::runtime_error{ "Error : nullptr"s };
     delete e;
     s_alreadyExist = false;
+}
+
+IEngine* getEngineInstance() {
+    if (s_alreadyExist) return g_enginePtr;
+    throw std::runtime_error{ "Error : engine not exist"s };
 }
 
 static std::unique_ptr<IGame, std::function<void(IGame* game)>>
@@ -525,48 +593,51 @@ int main(int argc, const char* argv[]) {
     try {
         if (auto args{ parseCommandLine(argc, argv) }) {
             auto engine{ createEngine() };
+            g_enginePtr = engine.get();
             auto answer{ engine->initialize("") };
             if (!answer.empty()) { return EXIT_FAILURE; }
             std::cout << "start app"sv << std::endl;
 
-            HotReloadProvider hotReloadProvider{ args->configFilePath };
+            HotReloadProvider::setPath(args->configFilePath);
 
             std::string_view tempLibraryName{ "./temp.dll" };
             void* gameLibraryHandle{};
             std::unique_ptr<IGame, std::function<void(IGame * game)>> game;
 
-            hotReloadProvider.addToCheck("game", [&]() {
+            HotReloadProvider::getInstance().addToCheck("game", [&]() {
                 std::cout << "changing game\n"sv;
                 game = reloadGame(std::move(game),
-                                  hotReloadProvider.getPath("game"),
+                                  HotReloadProvider::getInstance().getPath("game"),
                                   tempLibraryName,
                                   *engine,
                                   gameLibraryHandle);
             });
 
-            hotReloadProvider.addToCheck("vertex_shader", [&]() {
+            HotReloadProvider::getInstance().addToCheck("vertex_shader", [&]() {
                 std::cout << "recompile shaders\n"sv;
-                engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
-                                         hotReloadProvider.getPath("fragment_shader"));
+                engine->recompileShaders(
+                    HotReloadProvider::getInstance().getPath("vertex_shader"),
+                    HotReloadProvider::getInstance().getPath("fragment_shader"));
             });
 
-            hotReloadProvider.addToCheck("fragment_shader", [&]() {
+            HotReloadProvider::getInstance().addToCheck("fragment_shader", [&]() {
                 std::cout << "recompile shaders\n"sv;
-                engine->recompileShaders(hotReloadProvider.getPath("vertex_shader"),
-                                         hotReloadProvider.getPath("fragment_shader"));
+                engine->recompileShaders(
+                    HotReloadProvider::getInstance().getPath("vertex_shader"),
+                    HotReloadProvider::getInstance().getPath("fragment_shader"));
             });
 
-            hotReloadProvider.addToCheck("indices", [&]() {
+            HotReloadProvider::getInstance().addToCheck("indices", [&]() {
                 std::cout << "reload indices buffer\n"sv;
-                engine->reloadIndicesBuffer(hotReloadProvider.getPath("indices"));
+                engine->reloadIndicesBuffer(HotReloadProvider::getInstance().getPath("indices"));
             });
 
-            hotReloadProvider.addToCheck("vertices", [&]() {
+            HotReloadProvider::getInstance().addToCheck("vertices", [&]() {
                 std::cout << "reload vertices buffer\n"sv;
-                engine->reloadVerticesBuffer(hotReloadProvider.getPath("vertices"));
+                engine->reloadVerticesBuffer(HotReloadProvider::getInstance().getPath("vertices"));
             });
 
-            hotReloadProvider.check();
+            HotReloadProvider::getInstance().check();
             game->initialize();
 
             bool isEnd{};
@@ -582,10 +653,10 @@ int main(int argc, const char* argv[]) {
             float angle{};
 
             Texture tank{};
-            tank.load(hotReloadProvider.getPath("tank_texture"));
+            tank.load(HotReloadProvider::getInstance().getPath("tank_texture"));
 
             while (!isEnd) {
-                hotReloadProvider.check();
+                HotReloadProvider::getInstance().check();
                 Event event{};
                 while (engine->readInput(event)) {
                     std::cout << event << '\n';
@@ -665,8 +736,8 @@ int main(int argc, const char* argv[]) {
 
                 // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
                 // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
-                engine->renderTriangle(tr1, tank);
-                engine->renderTriangle(tr2, tank);
+           //     engine->renderTriangle(tr1, tank);
+             //   engine->renderTriangle(tr2, tank);
                 // engine->renderFromBuffer();
                 engine->swapBuffers();
             }
