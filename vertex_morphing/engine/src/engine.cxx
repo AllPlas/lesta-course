@@ -392,12 +392,10 @@ public:
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint16_t>& indexBuffer,
-                Texture* texture,
+                const Texture& texture,
                 std::uint16_t startIndex,
                 std::size_t numVertices) override {
-        glBindVertexArray(m_verticesArray);
-
-        texture->bind();
+        texture.bind();
         vertexBuffer.bind();
         indexBuffer.bind();
 
@@ -490,7 +488,6 @@ private:
 };
 
 static bool s_alreadyExist{ false };
-IEngine* g_enginePtr{};
 
 EnginePtr createEngine() {
     if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
@@ -503,11 +500,6 @@ void destroyEngine(IEngine* e) {
     if (e == nullptr) throw std::runtime_error{ "Error : nullptr"s };
     delete e;
     s_alreadyExist = false;
-}
-
-IEngine* getEngineInstance() {
-    if (s_alreadyExist) return g_enginePtr;
-    throw std::runtime_error{ "Error : engine not exist"s };
 }
 
 static std::unique_ptr<IGame, std::function<void(IGame* game)>>
@@ -617,7 +609,6 @@ int main(int argc, const char* argv[]) {
     try {
         if (auto args{ parseCommandLine(argc, argv) }) {
             auto engine{ createEngine() };
-            g_enginePtr = engine.get();
             auto answer{ engine->initialize("") };
             if (!answer.empty()) { return EXIT_FAILURE; }
             std::cout << "start app"sv << std::endl;
@@ -760,8 +751,8 @@ int main(int argc, const char* argv[]) {
 
                 // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
                 // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
-                //    engine->renderTriangle(tr1, tank);
-                //  engine->renderTriangle(tr2, tank);
+                engine->renderTriangle(tr1, tank);
+                  engine->renderTriangle(tr2, tank);
                 // engine->renderFromBuffer();
                 engine->swapBuffers();
             }

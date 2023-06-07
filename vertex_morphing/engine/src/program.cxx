@@ -1,7 +1,3 @@
-//
-// Created by Алексей Крукович лох on 16.05.23.
-//
-
 #include "program.hxx"
 
 #include <fstream>
@@ -11,7 +7,7 @@
 
 using namespace std::literals;
 
-static std::string readFile(const fs::path path) {
+static std::string readFile(const fs::path& path) {
     std::ifstream in{ path };
     if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
 

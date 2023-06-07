@@ -63,7 +63,7 @@ public:
 
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint16_t>& indexBuffer,
-                        Texture* texture,
+                        const Texture& texture,
                         std::uint16_t startIndex,
                         std::size_t numVertices) = 0;
 };
@@ -72,8 +72,6 @@ using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;
 
 EnginePtr createEngine();
 void destroyEngine(IEngine* e);
-
-IEngine* getEngineInstance();
 
 class IGame
 {

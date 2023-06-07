@@ -1,7 +1,3 @@
-//
-// Created by Алексей Крукович on 18.05.23.
-//
-
 #ifndef VERTEX_MORPHING_TEXTURE_HXX
 #define VERTEX_MORPHING_TEXTURE_HXX
 
