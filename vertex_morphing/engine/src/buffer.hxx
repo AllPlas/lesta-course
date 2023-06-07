@@ -49,7 +49,7 @@ public:
 };
 
 template <typename T = std::int16_t>
-class IndexBuffer
+class IndexBuffer final
 {
 private:
     std::vector<T> m_indices{};

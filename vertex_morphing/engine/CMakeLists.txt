@@ -26,7 +26,9 @@ add_executable(engine
         src/imgui_impl_sdl3.cxx
         src/imgui_impl_sdl3.hxx
         src/buffer.cxx
-        src/buffer.hxx)
+        src/buffer.hxx
+        src/imgui_impl_opengl3.cxx
+        src/imgui_impl_opengl3.hxx)
 
 set_target_properties(
         engine PROPERTIES

@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include "hot_reload_provider.hxx"
+#include "imgui_impl_opengl3.hxx"
 #include "imgui_impl_sdl3.hxx"
 #include "opengl_check.hxx"
 #include "program.hxx"
@@ -123,7 +124,7 @@ private:
 
 public:
     EngineImpl() = default;
-    ~EngineImpl() override { uninitialize(); }
+    ~EngineImpl() override = default;
 
     std::string initialize(std::string_view config) override {
         initSDL();
@@ -163,7 +164,22 @@ public:
 
         SDL_GL_SetSwapInterval(1);
 
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        ( void )io;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        // ImGui::StyleColorsLight();
+
+        // Setup Platform/Renderer backends
         ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
+        const char* glsl_version = "#version 150";
+        ImGui_ImplOpenGL3_Init(glsl_version);
 
         return "";
     }
@@ -177,6 +193,10 @@ public:
 
         glDeleteVertexArrays(1, &m_verticesArray);
         openGLCheck();
+
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext();
 
         if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         if (m_window) SDL_DestroyWindow(m_window);
@@ -248,6 +268,17 @@ public:
     }
 
     void renderTriangle(const Triangle& triangle, const Texture& texture) override {
+        m_program.use();
+
+        auto texture1{ glGetUniformLocation(*m_program, "texSampler") };
+        openGLCheck();
+
+        glUniform1i(texture1, 0);
+        openGLCheck();
+
+        glActiveTexture(GL_TEXTURE0);
+        openGLCheck();
+
         texture.bind();
         renderTriangle(triangle);
     }
@@ -281,15 +312,15 @@ public:
     }
 
     void swapBuffers() override {
-        ImGui_ImplSDL3_NewFrame(m_window);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
+        ImGui::NewFrame();
 
         bool show_demo_window{ true };
 
-        ImGui::ShowDemoWindow(&show_demo_window);
-        ImGui::Text("Hello");
+        if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
         ImGui::Render();
-        ImDrawData* drawData = ImGui::GetDrawData();
-        imgui_to_engine_render(drawData, this);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         SDL_GL_SwapWindow(m_window);
 
@@ -364,15 +395,9 @@ public:
                 Texture* texture,
                 std::uint16_t startIndex,
                 std::size_t numVertices) override {
-
-        glEnable(GL_BLEND);
-        openGLCheck();
-
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        openGLCheck();
+        glBindVertexArray(m_verticesArray);
 
         texture->bind();
-        glActiveTexture(GL_TEXTURE0);
         vertexBuffer.bind();
         indexBuffer.bind();
 
@@ -404,8 +429,7 @@ public:
                               reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
         openGLCheck();
 
-        glDrawElements(
-            GL_TRIANGLES, static_cast<GLsizei>(numVertices), GL_UNSIGNED_SHORT, nullptr);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(numVertices), GL_UNSIGNED_SHORT, nullptr);
         openGLCheck();
     }
 
@@ -736,8 +760,8 @@ int main(int argc, const char* argv[]) {
 
                 // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
                 // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
-           //     engine->renderTriangle(tr1, tank);
-             //   engine->renderTriangle(tr2, tank);
+                //    engine->renderTriangle(tr1, tank);
+                //  engine->renderTriangle(tr2, tank);
                 // engine->renderFromBuffer();
                 engine->swapBuffers();
             }

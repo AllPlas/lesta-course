@@ -6,7 +6,6 @@
 
 // Implemented features:
 //  [X] Platform: Clipboard support.
-//  [X] Platform: Mouse support. Can discriminate Mouse/TouchScreen.
 //  [X] Platform: Keyboard support. Since 1.87 we are using the io.AddKeyEvent() function. Pass
 //  ImGuiKey values to all key functions e.g. ImGui::IsKeyPressed(ImGuiKey_Space). [Legacy
 //  SDL_SCANCODE_* values will also be supported unless IMGUI_DISABLE_OBSOLETE_KEYIO is set] [X]
@@ -24,16 +23,17 @@
 // https://github.com/ocornut/imgui/tree/master/docs
 
 #pragma once
-#include <engine.hxx>
-#include <imgui.h> // IMGUI_IMPL_API
+#include "imgui.h" // IMGUI_IMPL_API
 
 struct SDL_Window;
 struct SDL_Renderer;
 typedef union SDL_Event SDL_Event;
 
 IMGUI_IMPL_API bool ImGui_ImplSDL3_InitForOpenGL(SDL_Window* window, void* sdl_gl_context);
+IMGUI_IMPL_API bool ImGui_ImplSDL3_InitForVulkan(SDL_Window* window);
+IMGUI_IMPL_API bool ImGui_ImplSDL3_InitForD3D(SDL_Window* window);
+IMGUI_IMPL_API bool ImGui_ImplSDL3_InitForMetal(SDL_Window* window);
+IMGUI_IMPL_API bool ImGui_ImplSDL3_InitForSDLRenderer(SDL_Window* window, SDL_Renderer* renderer);
 IMGUI_IMPL_API void ImGui_ImplSDL3_Shutdown();
-IMGUI_IMPL_API void ImGui_ImplSDL3_NewFrame(SDL_Window* window);
+IMGUI_IMPL_API void ImGui_ImplSDL3_NewFrame();
 IMGUI_IMPL_API bool ImGui_ImplSDL3_ProcessEvent(const SDL_Event* event);
-
-void imgui_to_engine_render(ImDrawData* drawData, IEngine* engine);

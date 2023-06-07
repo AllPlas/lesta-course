@@ -6,11 +6,11 @@
 
 #include <boost/gil/extension/io/png.hpp>
 
+#include <glad/glad.h>
+
 #include "opengl_check.hxx"
 
 namespace gil = boost::gil;
-
-Texture::Texture() = default;
 
 Texture::~Texture() { glDeleteTextures(1, &m_texture); }
 
@@ -33,7 +33,15 @@ void Texture::load(const void* pixels, std::size_t width, std::size_t height) {
     m_width = width;
     m_height = height;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGBA,
+                 static_cast<GLsizei>(width),
+                 static_cast<GLsizei>(height),
+                 0,
+                 GL_RGBA,
+                 GL_UNSIGNED_BYTE,
+                 pixels);
     openGLCheck();
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -43,11 +51,11 @@ void Texture::load(const void* pixels, std::size_t width, std::size_t height) {
     openGLCheck();
 }
 
-GLuint Texture::operator*() const noexcept { return m_texture; }
+std::uint32_t Texture::operator*() const noexcept { return m_texture; }
 
-int Texture::getWidth() const noexcept { return m_width; }
+std::size_t Texture::getWidth() const noexcept { return m_width; }
 
-int Texture::getHeight() const noexcept { return m_height; }
+std::size_t Texture::getHeight() const noexcept { return m_height; }
 
 void Texture::bind() const {
     glBindTexture(GL_TEXTURE_2D, m_texture);
