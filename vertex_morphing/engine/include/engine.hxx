@@ -5,6 +5,7 @@
 #ifndef SDL_ENGINE_EXE_ENGINE_HXX
 #define SDL_ENGINE_EXE_ENGINE_HXX
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
@@ -14,28 +15,76 @@
 
 #include "../src/buffer.hxx"
 
-enum class Event
+struct Event
 {
-    up_pressed,
-    up_released,
-    down_pressed,
-    down_released,
-    left_pressed,
-    left_released,
-    right_pressed,
-    right_released,
-    space_pressed,
-    space_released,
-    return_pressed,
-    return_released,
-    lctrl_pressed,
-    lctrl_released,
-    turn_off,
+    enum class Type
+    {
+        key_down,
+        key_up,
+        mouse_down,
+        mouse_up,
+        mouse_wheel,
+        mouse_motion,
+        turn_off,
 
-    max_events,
+        not_event,
+    };
+
+    struct Keyboard
+    {
+        enum class Key
+        {
+            w,
+            a,
+            s,
+            d,
+            space,
+            enter,
+            l_control,
+            l_shift,
+            escape,
+            backspace,
+
+            not_key,
+        };
+
+        Key key{ Key::not_key };
+    };
+
+    struct Mouse
+    {
+        enum class Button
+        {
+            left,
+            right,
+            middle,
+
+            not_button,
+        };
+
+        struct Pos
+        {
+            float x{};
+            float y{};
+        };
+
+        struct Wheel
+        {
+            float x{};
+            float y{};
+        };
+
+        Button button{ Button::not_button };
+        Pos pos{};
+        Wheel wheel{};
+    };
+
+    Type type{ Type::not_event };
+    Keyboard keyboard{};
+    Mouse mouse{};
 };
 
-std::ostream& operator<<(std::ostream& out, Event event);
+std::ostream& operator<<(std::ostream& out, const Event& eventNew);
 
 struct Triangle
 {
@@ -43,6 +92,13 @@ struct Triangle
 };
 
 std::ifstream& operator>>(std::ifstream& in, Triangle& triangle);
+
+struct Triangle2
+{
+    std::array<Vertex2, 3> vertices{};
+};
+
+std::ifstream& operator>>(std::ifstream& in, Triangle2& triangle2);
 
 class Texture;
 
@@ -55,17 +111,11 @@ public:
     virtual bool readInput(Event& event) = 0;
     virtual void renderTriangle(const Triangle& triangle) = 0;
     virtual void renderTriangle(const Triangle& triangle, const Texture& texture) = 0;
-    virtual void renderFromBuffer() = 0;
     virtual void swapBuffers() = 0;
     virtual void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) = 0;
-    virtual void reloadVerticesBuffer(std::string_view verticesPath) = 0;
-    virtual void reloadIndicesBuffer(std::string_view indicesPath) = 0;
-
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint16_t>& indexBuffer,
-                        const Texture& texture,
-                        std::uint16_t startIndex,
-                        std::size_t numVertices) = 0;
+                        const Texture& texture) = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;
@@ -78,7 +128,7 @@ class IGame
 public:
     virtual ~IGame() = default;
     virtual void initialize() = 0;
-    virtual void onEvent(Event event) = 0;
+    virtual void onEvent(const Event& event) = 0;
     virtual void update() = 0;
     virtual void render() const = 0;
 };

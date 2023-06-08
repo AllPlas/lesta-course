@@ -6,30 +6,29 @@
 #define VERTEX_MORPHING_PROGRAM_HXX
 
 #include <filesystem>
-#include <glad/glad.h>
 
 namespace fs = std::filesystem;
 
-class Program final
+class ShaderProgram final
 {
 private:
-    GLuint m_program{};
+    std::uint32_t m_program{};
 
 public:
-    Program() = default;
-    Program(const fs::path& vertPath, const fs::path& fragPath);
-    ~Program();
+    ShaderProgram() = default;
+    ShaderProgram(const fs::path& vertPath, const fs::path& fragPath);
+    ~ShaderProgram();
 
-    Program(const Program&) = delete;
-    Program& operator=(const Program&) = delete;
+    ShaderProgram(const ShaderProgram&) = delete;
+    ShaderProgram& operator=(const ShaderProgram&) = delete;
 
     void recompileShaders(const fs::path& vertPath, const fs::path& fragPath);
     void use() const;
 
-    GLuint operator*() const noexcept;
+    std::uint32_t operator*() const noexcept;
 
 private:
-    static GLuint compileShader(GLenum type, const fs::path& path);
+    static std::uint32_t compileShader(std::uint32_t type, const fs::path& path);
 };
 
 #endif // VERTEX_MORPHING_PROGRAM_HXX

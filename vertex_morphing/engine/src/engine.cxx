@@ -5,7 +5,6 @@
 
 #include <boost/program_options.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <SDL3/SDL.h>
@@ -29,26 +28,39 @@
 using namespace std::literals;
 namespace fs = std::filesystem;
 
-static const std::unordered_map<Event, std::string_view> s_eventToStringView{
-    { Event::up_pressed, "up_pressed" },
-    { Event::up_released, "up_released" },
-    { Event::down_pressed, "down_pressed" },
-    { Event::down_released, "down_released" },
-    { Event::left_pressed, "left_pressed" },
-    { Event::left_released, "left_released" },
-    { Event::right_pressed, "right_pressed" },
-    { Event::right_released, "right_released" },
-    { Event::space_pressed, "space_pressed" },
-    { Event::space_released, "space_released" },
-    { Event::return_pressed, "return_pressed" },
-    { Event::return_released, "return_released" },
-    { Event::lctrl_pressed, "lctrl_pressed" },
-    { Event::lctrl_released, "lctrl_released" },
-    { Event::turn_off, "turn_off" }
+static const std::unordered_map<Event::Type, std::string_view> s_eventTypeToStringView{
+    { Event::Type::key_down, "key_down" },      { Event::Type::key_up, "key_up" },
+    { Event::Type::mouse_down, "button_down" }, { Event::Type::mouse_up, "button_up" },
+    { Event::Type::mouse_wheel, "spin_wheel" }, { Event::Type::mouse_motion, "mouse_motion" },
+    { Event::Type::turn_off, "turn_off" },      { Event::Type::not_event, "" }
 };
 
-std::ostream& operator<<(std::ostream& out, Event event) {
-    out << s_eventToStringView.at(event);
+static const std::unordered_map<Event::Keyboard::Key, std::string_view> s_eventKeysToStringView{
+    { Event::Keyboard::Key::w, "w_" },
+    { Event::Keyboard::Key::a, "a_" },
+    { Event::Keyboard::Key::s, "s_" },
+    { Event::Keyboard::Key::d, "d_" },
+    { Event::Keyboard::Key::space, "space_" },
+    { Event::Keyboard::Key::enter, "enter_" },
+    { Event::Keyboard::Key::l_control, "left_control_" },
+    { Event::Keyboard::Key::l_shift, "left_shift_" },
+    { Event::Keyboard::Key::escape, "escape_" },
+    { Event::Keyboard::Key::backspace, "backspace_" },
+    { Event::Keyboard::Key::not_key, "" }
+};
+
+static const std::unordered_map<Event::Mouse::Button, std::string_view> s_eventButtonsToStringView{
+    { Event::Mouse::Button::left, "left_" },
+    { Event::Mouse::Button::right, "right_" },
+    { Event::Mouse::Button::middle, "middle_" },
+    { Event::Mouse::Button::not_button, "" }
+};
+
+std::ostream& operator<<(std::ostream& out, const Event& eventNew) {
+    out << s_eventKeysToStringView.at(eventNew.keyboard.key)
+        << s_eventButtonsToStringView.at(eventNew.mouse.button)
+        << s_eventTypeToStringView.at(eventNew.type);
+
     return out;
 }
 
@@ -59,28 +71,81 @@ std::ifstream& operator>>(std::ifstream& in, Triangle& triangle) {
     return in;
 }
 
-struct EventBind
-{
-    Event eventPressed{};
-    Event eventReleased{};
-};
+std::ifstream& operator>>(std::ifstream& in, Triangle2& triangle2) {
+    for (auto& vertex : triangle2.vertices)
+        in >> vertex;
 
-static std::optional<Event> checkKeyboardInput(SDL_Event& event) {
-    static const std::unordered_map<SDL_Keycode, EventBind> keymap{
-        { SDLK_w, EventBind{ Event::up_pressed, Event::up_released } },
-        { SDLK_s, EventBind{ Event::down_pressed, Event::down_released } },
-        { SDLK_a, EventBind{ Event::left_pressed, Event::left_released } },
-        { SDLK_d, EventBind{ Event::right_pressed, Event::right_released } },
-        { SDLK_SPACE, EventBind{ Event::space_pressed, Event::space_released } },
-        { SDLK_RETURN, EventBind{ Event::return_pressed, Event::return_released } },
-        { SDLK_LCTRL, EventBind{ Event::lctrl_pressed, Event::lctrl_released } }
+    return in;
+}
+
+static std::optional<Event> checkKeyboardInput(SDL_Event& sdlEvent) {
+    static const std::unordered_map<SDL_Keycode, Event::Keyboard::Key> keymap{
+        { SDLK_w, Event::Keyboard::Key::w },
+        { SDLK_a, Event::Keyboard::Key::a },
+        { SDLK_s, Event::Keyboard::Key::s },
+        { SDLK_d, Event::Keyboard::Key::d },
+        { SDLK_SPACE, Event::Keyboard::Key::space },
+        { SDLK_RETURN, Event::Keyboard::Key::enter },
+        { SDLK_LCTRL, Event::Keyboard::Key::l_control },
+        { SDLK_LSHIFT, Event::Keyboard::Key::l_shift },
+        { SDLK_ESCAPE, Event::Keyboard::Key::escape },
+        { SDLK_BACKSPACE, Event::Keyboard::Key::backspace }
     };
 
-    if (auto found{ keymap.find(event.key.keysym.sym) }; found != keymap.end()) {
-        if (event.type == SDL_EVENT_KEY_DOWN)
-            return found->second.eventPressed;
-        else if (event.type == SDL_EVENT_KEY_UP)
-            return found->second.eventReleased;
+    if (auto found{ keymap.find(sdlEvent.key.keysym.sym) }; found != keymap.end()) {
+        Event event{};
+        event.keyboard.key = found->second;
+
+        if (sdlEvent.type == SDL_EVENT_KEY_DOWN)
+            event.type = Event::Type::key_down;
+        else if (sdlEvent.type == SDL_EVENT_KEY_UP)
+            event.type = Event::Type::key_up;
+        else
+            return std::nullopt;
+
+        return event;
+    }
+
+    return std::nullopt;
+}
+
+static std::optional<Event> checkMouseInput(SDL_Event& sdlEvent) {
+    static const std::unordered_map<int, Event::Mouse::Button> mousemap{
+        { SDL_BUTTON_LEFT, Event::Mouse::Button::left },
+        { SDL_BUTTON_RIGHT, Event::Mouse::Button::right },
+        { SDL_BUTTON_MIDDLE, Event::Mouse::Button::middle }
+    };
+
+    Event event{};
+    event.mouse.pos.x = sdlEvent.motion.x;
+    event.mouse.pos.y = sdlEvent.motion.y;
+
+    if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (auto found{ mousemap.find(sdlEvent.button.button) }; found != mousemap.end()) {
+            event.mouse.button = found->second;
+            event.type = Event::Type::mouse_down;
+            return event;
+        }
+    }
+
+    if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        if (auto found{ mousemap.find(sdlEvent.button.button) }; found != mousemap.end()) {
+            event.mouse.button = found->second;
+            event.type = Event::Type::mouse_up;
+            return event;
+        }
+    }
+
+    if (sdlEvent.type == SDL_EVENT_MOUSE_MOTION) {
+        event.type = Event::Type::mouse_motion;
+        return event;
+    }
+
+    if (sdlEvent.type == SDL_EVENT_MOUSE_WHEEL) {
+        event.type = Event::Type::mouse_wheel;
+        event.mouse.wheel.x = sdlEvent.wheel.x;
+        event.mouse.wheel.y = sdlEvent.wheel.y;
+        return event;
     }
 
     return std::nullopt;
@@ -110,17 +175,9 @@ public:
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
-    Program m_program{};
+    ShaderProgram m_program{};
 
     GLuint m_verticesArray{};
-
-    GLuint m_verticesBuffer{};
-    GLuint m_indicesBuffer{};
-
-    std::vector<Vertex> m_vertices{};
-    std::vector<GLuint> m_indices{};
-
-    Texture m_texture{};
 
 public:
     EngineImpl() = default;
@@ -130,19 +187,11 @@ public:
         initSDL();
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
         m_window = createWindow();
+        SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowMinimumSize(m_window, 640, 480);
+        SDL_ShowWindow(m_window);
+
         createGLContext();
-
-        glGenBuffers(1, &m_verticesBuffer);
-        openGLCheck();
-
-        glGenBuffers(1, &m_indicesBuffer);
-        openGLCheck();
-
-        glBindBuffer(GL_ARRAY_BUFFER, m_verticesBuffer);
-        openGLCheck();
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
-        openGLCheck();
 
         glGenVertexArrays(1, &m_verticesArray);
         openGLCheck();
@@ -157,9 +206,6 @@ public:
         openGLCheck();
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        openGLCheck();
-
-        glViewport(0, 0, 800, 600);
         openGLCheck();
 
         SDL_GL_SetSwapInterval(1);
@@ -185,12 +231,6 @@ public:
     }
 
     void uninitialize() override {
-        glDeleteBuffers(1, &m_verticesBuffer);
-        openGLCheck();
-
-        glDeleteBuffers(1, &m_indicesBuffer);
-        openGLCheck();
-
         glDeleteVertexArrays(1, &m_verticesArray);
         openGLCheck();
 
@@ -209,12 +249,21 @@ public:
             ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
 
             if (sdlEvent.type == SDL_EVENT_QUIT) {
-                event = Event::turn_off;
+                event.type = Event::Type::turn_off;
                 return true;
             }
 
             if (sdlEvent.type == SDL_EVENT_KEY_DOWN || sdlEvent.type == SDL_EVENT_KEY_UP) {
                 if (auto e{ checkKeyboardInput(sdlEvent) }) {
+                    event = *e;
+                    return true;
+                }
+            }
+
+            if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+                sdlEvent.type == SDL_EVENT_MOUSE_MOTION || sdlEvent.type == SDL_EVENT_MOUSE_WHEEL) {
+                if (auto e{ checkMouseInput(sdlEvent) }) {
                     event = *e;
                     return true;
                 }
@@ -283,34 +332,6 @@ public:
         renderTriangle(triangle);
     }
 
-    void renderFromBuffer() override {
-        glValidateProgram(*m_program);
-        openGLCheck();
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-        openGLCheck();
-
-        glEnableVertexAttribArray(0);
-        openGLCheck();
-
-        glVertexAttribPointer(1,
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              sizeof(Vertex),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex, texX)));
-        openGLCheck();
-
-        glEnableVertexAttribArray(1);
-        openGLCheck();
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indicesBuffer);
-        openGLCheck();
-
-        glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
-        openGLCheck();
-    }
-
     void swapBuffers() override {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -321,6 +342,11 @@ public:
         if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        int w{}, h{};
+        SDL_GetWindowSize(m_window, &w, &h);
+        glViewport(0, 0, w, h);
+        openGLCheck();
 
         SDL_GL_SwapWindow(m_window);
 
@@ -345,56 +371,9 @@ public:
         openGLCheck();
     }
 
-    void reloadIndicesBuffer(std::string_view indicesPath) override {
-        m_indices.clear();
-        glBindVertexArray(0);
-        openGLCheck();
-
-        std::ifstream in{ indicesPath.data() };
-        if (!in.is_open())
-            throw std::runtime_error{ "Error : reloadIndicesBuffer : bad open file"s };
-
-        while (in) {
-            GLuint index{};
-            in >> index;
-            if (!in) break;
-            m_indices.push_back(index);
-        }
-
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     m_indices.size() * sizeof(GLuint),
-                     m_indices.data(),
-                     GL_STATIC_DRAW);
-        openGLCheck();
-
-        glBindVertexArray(m_verticesArray);
-        openGLCheck();
-    }
-
-    void reloadVerticesBuffer(std::string_view verticesPath) override {
-        m_vertices.clear();
-
-        std::ifstream in{ verticesPath.data() };
-        if (!in.is_open())
-            throw std::runtime_error{ "Error : reloadVerticesBuffer : bad open file"s };
-
-        while (in) {
-            Vertex vertex{};
-            in >> vertex;
-            if (!in) break;
-            m_vertices.push_back(vertex);
-        }
-
-        glBufferData(
-            GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
-        openGLCheck();
-    }
-
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint16_t>& indexBuffer,
-                const Texture& texture,
-                std::uint16_t startIndex,
-                std::size_t numVertices) override {
+                const Texture& texture) override {
         texture.bind();
         vertexBuffer.bind();
         indexBuffer.bind();
@@ -427,18 +406,24 @@ public:
                               reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
         openGLCheck();
 
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(numVertices), GL_UNSIGNED_SHORT, nullptr);
+        glDrawElements(
+            GL_TRIANGLES, static_cast<GLsizei>(vertexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
         openGLCheck();
     }
 
 private:
     static void initSDL() {
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD |
+                     SDL_INIT_TIMER) != 0)
             throw std::runtime_error{ "Error : failed call SDL_Init: "s + SDL_GetError() };
     }
 
     static SDL_Window* createWindow() {
-        if (auto window{ SDL_CreateWindow("OpenGL test", 800, 600, SDL_WINDOW_OPENGL) };
+        if (auto window{
+                SDL_CreateWindow("OpenGL test",
+                                 800,
+                                 600,
+                                 SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN) };
             window != nullptr)
             return window;
 
@@ -642,16 +627,6 @@ int main(int argc, const char* argv[]) {
                     HotReloadProvider::getInstance().getPath("fragment_shader"));
             });
 
-            HotReloadProvider::getInstance().addToCheck("indices", [&]() {
-                std::cout << "reload indices buffer\n"sv;
-                engine->reloadIndicesBuffer(HotReloadProvider::getInstance().getPath("indices"));
-            });
-
-            HotReloadProvider::getInstance().addToCheck("vertices", [&]() {
-                std::cout << "reload vertices buffer\n"sv;
-                engine->reloadVerticesBuffer(HotReloadProvider::getInstance().getPath("vertices"));
-            });
-
             HotReloadProvider::getInstance().check();
             game->initialize();
 
@@ -675,28 +650,30 @@ int main(int argc, const char* argv[]) {
                 Event event{};
                 while (engine->readInput(event)) {
                     std::cout << event << '\n';
-                    if (event == Event::turn_off) {
+                    if (event.type == Event::Type::turn_off) {
                         std::cout << "exiting"sv << std::endl;
                         isEnd = true;
                         break;
                     }
 
                     //                  game->onEvent(event);
-
-                    if (event == Event::up_pressed) { speedY = 0.05; }
-                    else if (event == Event::down_pressed) { speedY = -0.05; }
-                    else if (event == Event::up_released || event == Event::down_released) {
-                        speedY = 0.0;
-                    }
-
-                    if (event == Event::left_pressed) { speedX = -0.05; }
-                    else if (event == Event::right_pressed) { speedX = 0.05; }
-                    else if (event == Event::left_released || event == Event::right_released) {
-                        speedX = 0.0;
-                    }
-
-                    if (event == Event::space_pressed) { angle += 0.05; }
-                    if (event == Event::lctrl_pressed) { angle -= 0.05; }
+                    //
+                    //                    if (event == Event::up_pressed) { speedY = 0.05; }
+                    //                    else if (event == Event::down_pressed) { speedY = -0.05; }
+                    //                    else if (event == Event::up_released || event ==
+                    //                    Event::down_released) {
+                    //                        speedY = 0.0;
+                    //                    }
+                    //
+                    //                    if (event == Event::left_pressed) { speedX = -0.05; }
+                    //                    else if (event == Event::right_pressed) { speedX = 0.05; }
+                    //                    else if (event == Event::left_released || event ==
+                    //                    Event::right_released) {
+                    //                        speedX = 0.0;
+                    //                    }
+                    //
+                    //                    if (event == Event::space_pressed) { angle += 0.05; }
+                    //                    if (event == Event::lctrl_pressed) { angle -= 0.05; }
                 }
 
                 float alpha = std::sin(std::chrono::duration<float, std::ratio<1>>(
@@ -752,7 +729,7 @@ int main(int argc, const char* argv[]) {
                 // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
                 // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
                 engine->renderTriangle(tr1, tank);
-                  engine->renderTriangle(tr2, tank);
+                engine->renderTriangle(tr2, tank);
                 // engine->renderFromBuffer();
                 engine->swapBuffers();
             }

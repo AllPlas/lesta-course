@@ -46,6 +46,7 @@ public:
     ~VertexBuffer();
 
     void bind() const;
+    [[nodiscard]] std::size_t size() const noexcept;
 };
 
 template <typename T = std::int16_t>
@@ -60,6 +61,7 @@ public:
     ~IndexBuffer();
 
     void bind() const;
+    [[nodiscard]] std::size_t size() const noexcept;
 };
 
 #endif // VERTEX_MORPHING_BUFFER_HXX

@@ -39,6 +39,11 @@ void VertexBuffer<V>::bind() const {
 }
 
 template <typename V>
+std::size_t VertexBuffer<V>::size() const noexcept {
+    return m_vertices.size();
+}
+
+template <typename V>
 VertexBuffer<V>::~VertexBuffer() {
     glDeleteBuffers(1, &m_vertexBuffer);
 }
@@ -59,6 +64,11 @@ template <typename T>
 void IndexBuffer<T>::bind() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
     openGLCheck();
+}
+
+template <typename T>
+std::size_t IndexBuffer<T>::size() const noexcept {
+    return m_indices.size();
 }
 
 template <typename T>

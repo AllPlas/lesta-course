@@ -1,6 +1,7 @@
 #include "program.hxx"
 
 #include <fstream>
+#include <glad/glad.h>
 #include <vector>
 
 #include "opengl_check.hxx"
@@ -23,11 +24,11 @@ static std::string readFile(const fs::path& path) {
     return result;
 }
 
-Program::Program(const fs::path& vertPath, const fs::path& fragPath) {
+ShaderProgram::ShaderProgram(const fs::path& vertPath, const fs::path& fragPath) {
     recompileShaders(vertPath, fragPath);
 }
 
-void Program::recompileShaders(const fs::path& vertPath, const fs::path& fragPath) {
+void ShaderProgram::recompileShaders(const fs::path& vertPath, const fs::path& fragPath) {
     glDeleteProgram(m_program);
     openGLCheck();
 
@@ -77,7 +78,7 @@ void Program::recompileShaders(const fs::path& vertPath, const fs::path& fragPat
     openGLCheck();
 }
 
-GLuint Program::compileShader(GLenum type, const fs::path& path) {
+GLuint ShaderProgram::compileShader(GLenum type, const fs::path& path) {
     GLuint shader{ glCreateShader(type) };
     openGLCheck();
     std::string shaderSource{ readFile(path) };
@@ -111,11 +112,11 @@ GLuint Program::compileShader(GLenum type, const fs::path& path) {
 
     return shader;
 }
-void Program::use() const {
+void ShaderProgram::use() const {
     glUseProgram(m_program);
     openGLCheck();
 }
 
-GLuint Program::operator*() const noexcept { return m_program; }
+GLuint ShaderProgram::operator*() const noexcept { return m_program; }
 
-Program::~Program() { glDeleteProgram(m_program); }
+ShaderProgram::~ShaderProgram() { glDeleteProgram(m_program); }
