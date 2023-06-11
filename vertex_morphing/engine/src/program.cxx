@@ -119,4 +119,6 @@ void ShaderProgram::use() const {
 
 GLuint ShaderProgram::operator*() const noexcept { return m_program; }
 
-ShaderProgram::~ShaderProgram() { glDeleteProgram(m_program); }
+ShaderProgram::~ShaderProgram() {
+    if (m_program) glDeleteProgram(m_program);
+}
