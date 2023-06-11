@@ -35,7 +35,7 @@ add_executable(engine
 target_include_directories(engine PUBLIC include)
 target_include_directories(engine PRIVATE glad/include)
 target_link_libraries(engine PRIVATE SDL3::SDL3-shared OpenGL::GL PNG::PNG boost::boost)
-target_link_libraries(engine PRIVATE glm::glm imgui::imgui)
+target_link_libraries(engine PUBLIC glm::glm imgui::imgui)
 
 set_target_properties(engine PROPERTIES ENABLE_EXPORTS 1)
 
