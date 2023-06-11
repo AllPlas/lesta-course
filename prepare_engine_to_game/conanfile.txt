@@ -1,0 +1,9 @@
+[requires]
+boost/1.81.0
+libpng/1.6.39
+glm/cci.20230113
+imgui/1.89.4
+
+[generators]
+CMakeDeps
+CMakeToolchain
