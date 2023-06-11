@@ -5,6 +5,8 @@
 #ifndef SDL_ENGINE_EXE_ENGINE_HXX
 #define SDL_ENGINE_EXE_ENGINE_HXX
 
+#include <glm/glm.hpp>
+
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -14,6 +16,8 @@
 #include <string_view>
 
 #include "../src/buffer.hxx"
+#include "../src/sprite.hxx"
+#include "../src/texture.hxx"
 
 struct Event
 {
@@ -84,7 +88,7 @@ struct Event
     Mouse mouse{};
 };
 
-std::ostream& operator<<(std::ostream& out, const Event& eventNew);
+std::ostream& operator<<(std::ostream& out, const Event& event);
 
 struct Triangle
 {
@@ -100,8 +104,6 @@ struct Triangle2
 
 std::ifstream& operator>>(std::ifstream& in, Triangle2& triangle2);
 
-class Texture;
-
 class IEngine
 {
 public:
@@ -116,12 +118,20 @@ public:
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint16_t>& indexBuffer,
                         const Texture& texture) = 0;
+    virtual void render(const Sprite& sprite) = 0;
+    [[nodiscard]] virtual std::pair<int, int> getWindowSize() const noexcept = 0;
+    virtual void setVSync(bool isEnable) = 0;
+    [[nodiscard]] virtual bool getVSync() const noexcept = 0;
+    virtual void setFramerate(int framerate) = 0;
+    [[nodiscard]] virtual int getFramerate() const noexcept = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;
 
-EnginePtr createEngine();
+void createEngine();
 void destroyEngine(IEngine* e);
+
+const EnginePtr& getEngineInstance();
 
 class IGame
 {

@@ -3,6 +3,7 @@
 //
 #include "engine.hxx"
 
+#include <boost/json.hpp>
 #include <boost/program_options.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -27,6 +28,7 @@
 
 using namespace std::literals;
 namespace fs = std::filesystem;
+namespace json = boost::json;
 
 static const std::unordered_map<Event::Type, std::string_view> s_eventTypeToStringView{
     { Event::Type::key_down, "key_down" },      { Event::Type::key_up, "key_up" },
@@ -56,10 +58,10 @@ static const std::unordered_map<Event::Mouse::Button, std::string_view> s_eventB
     { Event::Mouse::Button::not_button, "" }
 };
 
-std::ostream& operator<<(std::ostream& out, const Event& eventNew) {
-    out << s_eventKeysToStringView.at(eventNew.keyboard.key)
-        << s_eventButtonsToStringView.at(eventNew.mouse.button)
-        << s_eventTypeToStringView.at(eventNew.type);
+std::ostream& operator<<(std::ostream& out, const Event& event) {
+    out << s_eventKeysToStringView.at(event.keyboard.key)
+        << s_eventButtonsToStringView.at(event.mouse.button)
+        << s_eventTypeToStringView.at(event.type);
 
     return out;
 }
@@ -95,6 +97,8 @@ static std::optional<Event> checkKeyboardInput(SDL_Event& sdlEvent) {
     if (auto found{ keymap.find(sdlEvent.key.keysym.sym) }; found != keymap.end()) {
         Event event{};
         event.keyboard.key = found->second;
+        event.mouse.pos.x = sdlEvent.motion.x;
+        event.mouse.pos.y = sdlEvent.motion.y;
 
         if (sdlEvent.type == SDL_EVENT_KEY_DOWN)
             event.type = Event::Type::key_down;
@@ -169,15 +173,14 @@ static std::string readFile(const fs::path& path) {
 
 class EngineImpl final : public IEngine
 {
-public:
-    glm::mat3 matrix{};
-
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
-    ShaderProgram m_program{};
 
+    ShaderProgram m_program{};
     GLuint m_verticesArray{};
+
+    int m_framerate{ 150 };
 
 public:
     EngineImpl() = default;
@@ -185,10 +188,40 @@ public:
 
     std::string initialize(std::string_view config) override {
         initSDL();
+
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
+                            SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-        m_window = createWindow();
+
+        auto jsonValue(json::parse(config));
+
+        auto width{ jsonValue.as_object().contains("window_width")
+                        ? jsonValue.as_object().at("window_width").as_int64()
+                        : 800 };
+
+        auto height{ jsonValue.as_object().contains("window_height")
+                         ? jsonValue.as_object().at("window_height").as_int64()
+                         : 600 };
+
+        auto isWindowResizable{ jsonValue.as_object().contains("is_window_resizable") &&
+                                jsonValue.as_object().at("is_window_resizable").as_bool() };
+
+        auto minWidth{ jsonValue.as_object().contains("window_min_width")
+                           ? jsonValue.as_object().at("window_min_width").as_int64()
+                           : 640 };
+
+        auto minHeight{ jsonValue.as_object().contains("window_min_height")
+                            ? jsonValue.as_object().at("window_min_height").as_int64()
+                            : 480 };
+
+        int flags{};
+        flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN;
+        if (isWindowResizable) flags |= SDL_WINDOW_RESIZABLE;
+
+        m_window = createWindow(
+            static_cast<int>(width), static_cast<int>(height), static_cast<SDL_WindowFlags>(flags));
         SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        SDL_SetWindowMinimumSize(m_window, 640, 480);
+        SDL_SetWindowMinimumSize(m_window, static_cast<int>(minWidth), static_cast<int>(minHeight));
         SDL_ShowWindow(m_window);
 
         createGLContext();
@@ -276,17 +309,14 @@ public:
     void renderTriangle(const Triangle& triangle) override {
         auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
 
-        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(matrix));
+        //  glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(matrix));
+        std::vector<Vertex> vert{ triangle.vertices.begin(), triangle.vertices.end() };
+        VertexBuffer<Vertex> vb{ std::move(vert) };
+        std::vector<uint16_t> idx{ 0, 1, 2 };
+        IndexBuffer ib{ std::move(idx) };
+        vb.bind();
+        ib.bind();
 
-        GLuint vbo{};
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER,
-                     triangle.vertices.size() * sizeof(Vertex),
-                     triangle.vertices.data(),
-                     GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glValidateProgram(*m_program);
         openGLCheck();
 
@@ -307,13 +337,11 @@ public:
         glEnableVertexAttribArray(1);
         openGLCheck();
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glDrawElements(GL_TRIANGLES, ib.size(), GL_UNSIGNED_SHORT, nullptr);
         openGLCheck();
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        openGLCheck();
-
-        glDeleteBuffers(1, &vbo);
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
     }
 
     void renderTriangle(const Triangle& triangle, const Texture& texture) override {
@@ -333,10 +361,6 @@ public:
     }
 
     void swapBuffers() override {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
-
         bool show_demo_window{ true };
 
         if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
@@ -374,6 +398,13 @@ public:
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint16_t>& indexBuffer,
                 const Texture& texture) override {
+        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
+        glm::mat3 mat{};
+        mat[0][0] = 1;
+        mat[1][1] = 1;
+        mat[2][2] = 1;
+        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(mat));
+
         texture.bind();
         vertexBuffer.bind();
         indexBuffer.bind();
@@ -407,9 +438,78 @@ public:
         openGLCheck();
 
         glDrawElements(
-            GL_TRIANGLES, static_cast<GLsizei>(vertexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
-        openGLCheck();
+            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
+        //  openGLCheck();
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
     }
+
+    void render(const Sprite& sprite) override {
+        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
+        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(sprite.getResultMatrix()));
+
+        VertexBuffer vertexBuffer{ sprite.getVertices() };
+        IndexBuffer indexBuffer{ sprite.getIndices() };
+
+        sprite.getTexture().bind();
+        vertexBuffer.bind();
+        indexBuffer.bind();
+
+        glEnableVertexAttribArray(0);
+        openGLCheck();
+
+        glEnableVertexAttribArray(1);
+        openGLCheck();
+
+        glEnableVertexAttribArray(2);
+        openGLCheck();
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
+        openGLCheck();
+
+        glVertexAttribPointer(1,
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
+        openGLCheck();
+
+        glVertexAttribPointer(2,
+                              4,
+                              GL_UNSIGNED_BYTE,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
+        openGLCheck();
+
+        glDrawElements(
+            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
+        openGLCheck();
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+    }
+
+    [[nodiscard]] std::pair<int, int> getWindowSize() const noexcept override {
+        int width{};
+        int height{};
+        SDL_GetWindowSize(m_window, &width, &height);
+        return { width, height };
+    }
+
+    void setVSync(bool isEnable) override { SDL_GL_SetSwapInterval(isEnable); }
+    [[nodiscard]] bool getVSync() const noexcept override {
+        int isVSync{};
+        SDL_GL_GetSwapInterval(&isVSync);
+        return isVSync;
+    }
+
+    void setFramerate(int framerate) override { m_framerate = framerate; }
+    [[nodiscard]] int getFramerate() const noexcept override { return m_framerate; }
 
 private:
     static void initSDL() {
@@ -418,13 +518,8 @@ private:
             throw std::runtime_error{ "Error : failed call SDL_Init: "s + SDL_GetError() };
     }
 
-    static SDL_Window* createWindow() {
-        if (auto window{
-                SDL_CreateWindow("OpenGL test",
-                                 800,
-                                 600,
-                                 SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN) };
-            window != nullptr)
+    static SDL_Window* createWindow(int width, int height, SDL_WindowFlags flags) {
+        if (auto window{ SDL_CreateWindow("OpenGL test", width, height, flags) }; window != nullptr)
             return window;
 
         SDL_Quit();
@@ -473,11 +568,12 @@ private:
 };
 
 static bool s_alreadyExist{ false };
+static EnginePtr g_engine{};
 
-EnginePtr createEngine() {
+void createEngine() {
     if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
     s_alreadyExist = true;
-    return { new EngineImpl{}, destroyEngine };
+    g_engine = { new EngineImpl{}, destroyEngine };
 }
 
 void destroyEngine(IEngine* e) {
@@ -486,6 +582,8 @@ void destroyEngine(IEngine* e) {
     delete e;
     s_alreadyExist = false;
 }
+
+const EnginePtr& getEngineInstance() { return g_engine; }
 
 static std::unique_ptr<IGame, std::function<void(IGame* game)>>
 reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
@@ -593,8 +691,11 @@ Triangle getTransformedTriangle(const Triangle& t, const glm::mat3& matrix) {
 int main(int argc, const char* argv[]) {
     try {
         if (auto args{ parseCommandLine(argc, argv) }) {
-            auto engine{ createEngine() };
-            auto answer{ engine->initialize("") };
+            createEngine();
+            auto& engine{ getEngineInstance() };
+            auto answer{ engine->initialize(R"({
+"is_window_resizable": true
+})") };
             if (!answer.empty()) { return EXIT_FAILURE; }
             std::cout << "start app"sv << std::endl;
 
@@ -642,10 +743,22 @@ int main(int argc, const char* argv[]) {
 
             float angle{};
 
+            bool showDebugMenu{};
+            bool vsync{ true };
+
             Texture tank{};
             tank.load(HotReloadProvider::getInstance().getPath("tank_texture"));
 
+            Texture tex{};
+            tex.load("/Users/aleksey/lesta-course/vertex_morphing/data/crate1_diffuse.png");
+            int targetFps = 150;
+            int frameDelay = 1000 / targetFps;
+
+            Sprite sprite{ "/Users/aleksey/lesta-course/vertex_morphing/data/tank_dark.png",
+                           { 200, 200 } };
+
             while (!isEnd) {
+                int frameStart = SDL_GetTicks();
                 HotReloadProvider::getInstance().check();
                 Event event{};
                 while (engine->readInput(event)) {
@@ -658,23 +771,36 @@ int main(int argc, const char* argv[]) {
 
                     //                  game->onEvent(event);
                     //
-                    //                    if (event == Event::up_pressed) { speedY = 0.05; }
-                    //                    else if (event == Event::down_pressed) { speedY = -0.05; }
-                    //                    else if (event == Event::up_released || event ==
-                    //                    Event::down_released) {
-                    //                        speedY = 0.0;
-                    //                    }
-                    //
-                    //                    if (event == Event::left_pressed) { speedX = -0.05; }
-                    //                    else if (event == Event::right_pressed) { speedX = 0.05; }
-                    //                    else if (event == Event::left_released || event ==
-                    //                    Event::right_released) {
-                    //                        speedX = 0.0;
-                    //                    }
-                    //
-                    //                    if (event == Event::space_pressed) { angle += 0.05; }
-                    //                    if (event == Event::lctrl_pressed) { angle -= 0.05; }
+
+                    if (event.type == Event::Type::key_down) {
+                        if (event.keyboard.key == Event::Keyboard::Key::w) speedY += 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::s) speedY -= 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::a) speedX -= 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::d) speedX += 0.1;
+
+                        if (event.keyboard.key == Event::Keyboard::Key::l_control)
+                            showDebugMenu = !showDebugMenu;
+
+                        if (event.keyboard.key == Event::Keyboard::Key::l_shift) angle += 0.05;
+                    }
+
+                    if (event.type == Event::Type::key_up) {
+                        if (event.keyboard.key == Event::Keyboard::Key::w) speedY -= 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::s) speedY += 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::a) speedX += 0.1;
+                        if (event.keyboard.key == Event::Keyboard::Key::d) speedX -= 0.1;
+                    }
                 }
+
+                if (speedX < -0.1)
+                    speedX = -0.1;
+                else if (speedX > 0.1)
+                    speedX = 0.1;
+
+                if (speedY < -0.1)
+                    speedY = -0.1;
+                else if (speedY > 0.1)
+                    speedY = 0.1;
 
                 float alpha = std::sin(std::chrono::duration<float, std::ratio<1>>(
                                            std::chrono::steady_clock::now() - timeAfterLoading)
@@ -709,9 +835,7 @@ int main(int argc, const char* argv[]) {
 
                 glm::mat3 aspect{ 0.0f };
                 aspect[0][0] = 1;
-                aspect[0][1] = 0.f;
-                aspect[1][0] = 0.f;
-                aspect[1][1] = 640.f / 480.f;
+                aspect[1][1] = 800.f / 600.f;
                 aspect[2][2] = 1;
 
                 glm::mat3 rotation{ 0.0f };
@@ -721,17 +845,57 @@ int main(int argc, const char* argv[]) {
                 rotation[1][1] = std::cos(angle);
                 rotation[2][2] = 1;
 
-                glm::mat3 result{ move * aspect * rotation };
+                glm::mat3 scale{ 0.0f };
+                scale[0][0] = 0.5f * 800.f / engine->getWindowSize().first;
+                scale[1][1] = 0.5f * 600.f / engine->getWindowSize().second;
+                scale[2][2] = 1;
+
+                glm::mat3 result{ scale * move * aspect * rotation };
 
                 auto d{ dynamic_cast<EngineImpl*>(engine.get()) };
-                d->matrix = result;
+
+                ImGui_ImplSDL3_NewFrame();
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui::NewFrame();
 
                 // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
                 // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
-                engine->renderTriangle(tr1, tank);
-                engine->renderTriangle(tr2, tank);
-                // engine->renderFromBuffer();
+                //         engine->renderTriangle(tr1, tank);
+                //       engine->renderTriangle(tr2, tex);
+
+                std::vector<Vertex2> m_vert{ { -1.0f, 1.0f, 0.0f, 0.0f, 0 },
+                                             { -0.5f, 1.0f, 1.0f, 0.0f, 0 },
+                                             { -0.5f, 0.5f, 1.0f, 1.0f, 0 },
+                                             { -1.0f, 0.5f, 0.0f, 1.0f, 0 } };
+
+                std::vector<std::uint16_t> m_idx{ 0, 1, 2, 0, 2, 3 };
+
+                VertexBuffer vb{ std::move(m_vert) };
+                IndexBuffer ib{ std::move(m_idx) };
+
+                engine->render(vb, ib, tex);
+                //     sprite.checkAspect({ 800, 600 });
+                engine->render(sprite);
+
+                if (showDebugMenu) {
+                    ImGui::Begin("my window");
+                    ImGui::Text("speedX = %.2f speedY = %.2f", speedX, speedY);
+                    ImGui::Text("FPS = %.1f", ImGui::GetIO().Framerate);
+                    ImGui::SliderInt("FPS", &targetFps, 60, 1000);
+                    if (ImGui::Button("Apply")) { frameDelay = 1000.f / targetFps; }
+
+                    if (ImGui::Button(((vsync ? "Disable"s : "Enable"s) + " VSync"s).c_str())) {
+                        vsync = !vsync;
+                        engine->setVSync(vsync);
+                    }
+
+                    ImGui::End();
+                }
+
                 engine->swapBuffers();
+
+                int frameTime = SDL_GetTicks() - frameStart;
+                if (!vsync && frameTime < frameDelay) { SDL_Delay(frameDelay - frameTime); }
             }
 
             engine->uninitialize();
