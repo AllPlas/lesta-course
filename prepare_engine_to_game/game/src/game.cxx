@@ -9,15 +9,15 @@ using namespace std::literals;
 class PirateGame : public IGame
 {
 private:
-    //  Sprite sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/tank_dark.png",
-    //                  { 84, 92 } };
+      Sprite sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/tank_dark.png",
+                      { 84, 92 } };
 
 public:
     void initialize() override {}
 
     void onEvent(const Event& event) override {}
 
-    void render() const override { getEngineInstance()->getWindowSize(); }
+    void render() const override { getEngineInstance()->render(sprite); }
 
     void update() override {}
 };
