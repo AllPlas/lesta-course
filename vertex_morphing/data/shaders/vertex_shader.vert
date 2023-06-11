@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec2 vertPosition;
 layout(location = 1) in vec2 vertTexCoord;
+layout(location = 2) in vec4 vertColor;
 
 out vec2 texCoord;
 
