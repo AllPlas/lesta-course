@@ -28,7 +28,9 @@ add_executable(engine
         src/buffer.cxx
         src/buffer.hxx
         src/imgui_impl_opengl3.cxx
-        src/imgui_impl_opengl3.hxx)
+        src/imgui_impl_opengl3.hxx
+        src/sprite.cxx
+        src/sprite.hxx)
 
 set_target_properties(
         engine PROPERTIES
