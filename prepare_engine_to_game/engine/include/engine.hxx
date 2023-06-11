@@ -18,6 +18,7 @@
 #include "buffer.hxx"
 #include "sprite.hxx"
 #include "texture.hxx"
+#include "program.hxx"
 
 struct Event
 {

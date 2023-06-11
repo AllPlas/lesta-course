@@ -23,8 +23,6 @@
 #include "imgui_impl_opengl3.hxx"
 #include "imgui_impl_sdl3.hxx"
 #include "opengl_check.hxx"
-#include "program.hxx"
-#include "texture.hxx"
 
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -184,6 +182,7 @@ private:
 
 public:
     EngineImpl() = default;
+
     ~EngineImpl() override = default;
 
     std::string initialize(std::string_view config) override {
@@ -502,6 +501,7 @@ public:
     }
 
     void setVSync(bool isEnable) override { SDL_GL_SetSwapInterval(isEnable); }
+
     [[nodiscard]] bool getVSync() const noexcept override {
         int isVSync{};
         SDL_GL_GetSwapInterval(&isVSync);
@@ -509,6 +509,7 @@ public:
     }
 
     void setFramerate(int framerate) override { m_framerate = framerate; }
+
     [[nodiscard]] int getFramerate() const noexcept override { return m_framerate; }
 
 private:
@@ -732,33 +733,9 @@ int main(int argc, const char* argv[]) {
             game->initialize();
 
             bool isEnd{};
-            auto now = std::chrono::steady_clock::now();
-            auto timeAfterLoading{ now };
-
-            float posX{};
-            float posY{};
-
-            float speedX{};
-            float speedY{};
-
-            float angle{};
-
-            bool showDebugMenu{};
-            bool vsync{ true };
-
-            Texture tank{};
-            tank.load(HotReloadProvider::getInstance().getPath("tank_texture"));
-
-            Texture tex{};
-            tex.load("/Users/aleksey/lesta-course/vertex_morphing/data/crate1_diffuse.png");
-            int targetFps = 150;
-            int frameDelay = 1000 / targetFps;
-
-            Sprite sprite{ "/Users/aleksey/lesta-course/vertex_morphing/data/tank_dark.png",
-                           { 200, 200 } };
-
             while (!isEnd) {
-                int frameStart = SDL_GetTicks();
+                std::uint64_t frameStart{ SDL_GetTicks() };
+
                 HotReloadProvider::getInstance().check();
                 Event event{};
                 while (engine->readInput(event)) {
@@ -769,133 +746,20 @@ int main(int argc, const char* argv[]) {
                         break;
                     }
 
-                    //                  game->onEvent(event);
-                    //
-
-                    if (event.type == Event::Type::key_down) {
-                        if (event.keyboard.key == Event::Keyboard::Key::w) speedY += 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::s) speedY -= 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::a) speedX -= 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::d) speedX += 0.1;
-
-                        if (event.keyboard.key == Event::Keyboard::Key::l_control)
-                            showDebugMenu = !showDebugMenu;
-
-                        if (event.keyboard.key == Event::Keyboard::Key::l_shift) angle += 0.05;
-                    }
-
-                    if (event.type == Event::Type::key_up) {
-                        if (event.keyboard.key == Event::Keyboard::Key::w) speedY -= 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::s) speedY += 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::a) speedX += 0.1;
-                        if (event.keyboard.key == Event::Keyboard::Key::d) speedX -= 0.1;
-                    }
+                    game->onEvent(event);
                 }
-
-                if (speedX < -0.1)
-                    speedX = -0.1;
-                else if (speedX > 0.1)
-                    speedX = 0.1;
-
-                if (speedY < -0.1)
-                    speedY = -0.1;
-                else if (speedY > 0.1)
-                    speedY = 0.1;
-
-                float alpha = std::sin(std::chrono::duration<float, std::ratio<1>>(
-                                           std::chrono::steady_clock::now() - timeAfterLoading)
-                                           .count()) *
-                                  0.5f +
-                              0.5f;
-
-                auto elapsed = std::chrono::duration<float, std::ratio<1>>(
-                                   std::chrono::steady_clock::now() - now)
-                                   .count();
-                now = std::chrono::steady_clock::now();
-
-                posY += speedY * elapsed;
-                posX += speedX * elapsed;
-
-                Triangle tr1{ -0.4, 0.4, 1.0, 0.0,  0.0, 0.4, 0.4, 1.0,
-                              1.0,  0.0, 0.4, -0.4, 1.0, 1.0, 1.0 };
-                Triangle tr2{ -0.4, 0.4, 1.0,  0.0,  0.0, 0.4, -0.4, 1.0,
-                              1.0,  1.0, -0.4, -0.4, 1.0, 0.0, 1.0 };
-
-                Triangle tr3{ 0.0, -0.5, 0.0, -0.5, 0.0, 0.0, 0.5, 0.0, 0.0 };
-
-                //    Triangle render{ blendTriangle(tr1, tr3, alpha) };
-                //    Triangle render2{ blendTriangle(tr2, tr3, alpha) };
-
-                glm::mat3 move{ 0.0f };
-                move[0][0] = 1;
-                move[1][1] = 1;
-                move[2][0] = posX * std::cos(angle) - posY * std::sin(angle);
-                move[2][1] = posX * std::sin(angle) + posY * std::cos(angle);
-                move[2][2] = 1;
-
-                glm::mat3 aspect{ 0.0f };
-                aspect[0][0] = 1;
-                aspect[1][1] = 800.f / 600.f;
-                aspect[2][2] = 1;
-
-                glm::mat3 rotation{ 0.0f };
-                rotation[0][0] = std::cos(angle);
-                rotation[0][1] = std::sin(angle);
-                rotation[1][0] = -std::sin(angle);
-                rotation[1][1] = std::cos(angle);
-                rotation[2][2] = 1;
-
-                glm::mat3 scale{ 0.0f };
-                scale[0][0] = 0.5f * 800.f / engine->getWindowSize().first;
-                scale[1][1] = 0.5f * 600.f / engine->getWindowSize().second;
-                scale[2][2] = 1;
-
-                glm::mat3 result{ scale * move * aspect * rotation };
-
-                auto d{ dynamic_cast<EngineImpl*>(engine.get()) };
 
                 ImGui_ImplSDL3_NewFrame();
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui::NewFrame();
 
-                // tr1 = getTransformedTriangle(tr1, move * aspect * rotation);
-                // tr2 = getTransformedTriangle(tr2, move * aspect * rotation);
-                //         engine->renderTriangle(tr1, tank);
-                //       engine->renderTriangle(tr2, tex);
-
-                std::vector<Vertex2> m_vert{ { -1.0f, 1.0f, 0.0f, 0.0f, 0 },
-                                             { -0.5f, 1.0f, 1.0f, 0.0f, 0 },
-                                             { -0.5f, 0.5f, 1.0f, 1.0f, 0 },
-                                             { -1.0f, 0.5f, 0.0f, 1.0f, 0 } };
-
-                std::vector<std::uint16_t> m_idx{ 0, 1, 2, 0, 2, 3 };
-
-                VertexBuffer vb{ std::move(m_vert) };
-                IndexBuffer ib{ std::move(m_idx) };
-
-                engine->render(vb, ib, tex);
-                //     sprite.checkAspect({ 800, 600 });
-                engine->render(sprite);
-
-                if (showDebugMenu) {
-                    ImGui::Begin("my window");
-                    ImGui::Text("speedX = %.2f speedY = %.2f", speedX, speedY);
-                    ImGui::Text("FPS = %.1f", ImGui::GetIO().Framerate);
-                    ImGui::SliderInt("FPS", &targetFps, 60, 1000);
-                    if (ImGui::Button("Apply")) { frameDelay = 1000.f / targetFps; }
-
-                    if (ImGui::Button(((vsync ? "Disable"s : "Enable"s) + " VSync"s).c_str())) {
-                        vsync = !vsync;
-                        engine->setVSync(vsync);
-                    }
-
-                    ImGui::End();
-                }
-
                 engine->swapBuffers();
 
-                int frameTime = SDL_GetTicks() - frameStart;
-                if (!vsync && frameTime < frameDelay) { SDL_Delay(frameDelay - frameTime); }
+                if (!engine->getVSync()) {
+                    int frameDelay = 1000 / engine->getFramerate();
+                    std::uint64_t frameTime{ SDL_GetTicks() - frameStart };
+                    if (frameTime < frameDelay) SDL_Delay(frameDelay - frameTime);
+                }
             }
 
             engine->uninitialize();
