@@ -26,10 +26,51 @@ VertexBuffer<V>::VertexBuffer(std::vector<V>&& vertices) : m_vertices{ std::move
     glGenBuffers(1, &m_vertexBuffer);
     openGLCheck();
 
+    updateData();
+}
+
+template <typename V>
+VertexBuffer<V>::VertexBuffer(const std::vector<V>& vertices) : m_vertices{ vertices } {
+    glGenBuffers(1, &m_vertexBuffer);
+    openGLCheck();
+
+    updateData();
+}
+
+template <typename V>
+void VertexBuffer<V>::updateData(std::vector<V>&& vertices) {
+    m_vertices = std::move(vertices);
+    updateData();
+}
+
+template <typename V>
+void VertexBuffer<V>::updateData(const std::vector<V>& vertices) {
+    m_vertices = vertices;
+    updateData();
+}
+
+template <typename V>
+void VertexBuffer<V>::updateData() const {
     bind();
 
     glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(V), m_vertices.data(), GL_STATIC_DRAW);
     openGLCheck();
+}
+
+template <typename V>
+void VertexBuffer<V>::addData(std::vector<V>&& vertices) {
+    m_vertices.insert(m_vertices.end(),
+                      std::make_move_iterator(vertices.begin()),
+                      std::make_move_iterator(vertices.end()));
+
+    updateData();
+}
+
+template <typename V>
+void VertexBuffer<V>::addData(const std::vector<V>& vertices) {
+    m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
+
+    updateData();
 }
 
 template <typename V>
@@ -53,11 +94,50 @@ IndexBuffer<T>::IndexBuffer(std::vector<T>&& indices) : m_indices{ std::move(ind
     glGenBuffers(1, &m_indexBuffer);
     openGLCheck();
 
+    updateData();
+}
+
+template <typename T>
+IndexBuffer<T>::IndexBuffer(const std::vector<T>& indices) : m_indices{ indices } {
+    glGenBuffers(1, &m_indexBuffer);
+    openGLCheck();
+
+    updateData();
+}
+
+template <typename T>
+void IndexBuffer<T>::updateData(std::vector<T>&& indices) {
+    m_indices = std::move(indices);
+    updateData();
+}
+
+template <typename T>
+void IndexBuffer<T>::updateData(const std::vector<T>& indices) {
+    m_indices = indices;
+    updateData();
+}
+
+template <typename T>
+void IndexBuffer<T>::updateData() const {
     bind();
 
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(T), m_indices.data(), GL_STATIC_DRAW);
     openGLCheck();
+}
+
+template <typename T>
+void IndexBuffer<T>::addData(std::vector<T>&& indices) {
+    m_indices.insert(m_indices.end(),
+                     std::make_move_iterator(indices.begin()),
+                     std::make_move_iterator(indices.end()));
+    updateData();
+}
+
+template <typename T>
+void IndexBuffer<T>::addData(const std::vector<T>& indices) {
+    m_indices.insert(m_indices.end(), indices.begin(), indices.end());
+    updateData();
 }
 
 template <typename T>

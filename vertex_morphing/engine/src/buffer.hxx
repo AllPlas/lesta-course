@@ -43,10 +43,23 @@ private:
 
 public:
     explicit VertexBuffer(std::vector<V>&& vertices);
+    explicit VertexBuffer(const std::vector<V>& vertices);
     ~VertexBuffer();
+
+    VertexBuffer(const VertexBuffer&) = delete;
+    VertexBuffer& operator=(const VertexBuffer&) = delete;
+
+    void updateData(std::vector<V>&& vertices);
+    void updateData(const std::vector<V>& vertices);
+
+    void addData(std::vector<V>&& vertices);
+    void addData(const std::vector<V>& vertices);
 
     void bind() const;
     [[nodiscard]] std::size_t size() const noexcept;
+
+private:
+    void updateData() const;
 };
 
 template <typename T = std::int16_t>
@@ -58,10 +71,23 @@ private:
 
 public:
     explicit IndexBuffer(std::vector<T>&& indices);
+    explicit IndexBuffer(const std::vector<T>& indices);
     ~IndexBuffer();
+
+    IndexBuffer(const IndexBuffer&) = delete;
+    IndexBuffer& operator=(const IndexBuffer&) = delete;
+
+    void updateData(std::vector<T>&& indices);
+    void updateData(const std::vector<T>& indices);
+
+    void addData(std::vector<T>&& indices);
+    void addData(const std::vector<T>& indices);
 
     void bind() const;
     [[nodiscard]] std::size_t size() const noexcept;
+
+private:
+    void updateData() const;
 };
 
 #endif // VERTEX_MORPHING_BUFFER_HXX
