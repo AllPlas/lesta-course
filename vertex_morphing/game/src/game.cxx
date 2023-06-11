@@ -23,7 +23,7 @@ private:
 
 public:
   void initialize() override {}
-  void onEvent(Event event) override {}
+  void onEvent(const Event& event) override {}
 
   void update() override {
     if (m_percent == Config::maxPercent) {
