@@ -584,7 +584,10 @@ void destroyEngine(IEngine* e) {
     s_alreadyExist = false;
 }
 
-const EnginePtr& getEngineInstance() { return g_engine; }
+const EnginePtr& getEngineInstance() {
+    if (!s_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
+    return g_engine;
+}
 
 static std::unique_ptr<IGame, std::function<void(IGame* game)>>
 reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
@@ -752,6 +755,9 @@ int main(int argc, const char* argv[]) {
                 ImGui_ImplSDL3_NewFrame();
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui::NewFrame();
+
+                game->update();
+                game->render();
 
                 engine->swapBuffers();
 
