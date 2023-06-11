@@ -18,19 +18,19 @@ add_executable(engine
         src/hot_reload_provider.hxx
         src/hot_reload_provider.cxx
         src/program.cxx
-        src/program.hxx
+        include/program.hxx
         src/opengl_check.cxx
         src/opengl_check.hxx
         src/texture.cxx
-        src/texture.hxx
+        include/texture.hxx
         src/imgui_impl_sdl3.cxx
         src/imgui_impl_sdl3.hxx
         src/buffer.cxx
-        src/buffer.hxx
+        include/buffer.hxx
         src/imgui_impl_opengl3.cxx
         src/imgui_impl_opengl3.hxx
         src/sprite.cxx
-        src/sprite.hxx)
+        include/sprite.hxx)
 
 set_target_properties(
         engine PROPERTIES

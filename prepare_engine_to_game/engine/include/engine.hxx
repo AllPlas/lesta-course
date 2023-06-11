@@ -15,9 +15,9 @@
 #include <string>
 #include <string_view>
 
-#include "../src/buffer.hxx"
-#include "../src/sprite.hxx"
-#include "../src/texture.hxx"
+#include "buffer.hxx"
+#include "sprite.hxx"
+#include "texture.hxx"
 
 struct Event
 {
