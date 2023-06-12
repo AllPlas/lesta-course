@@ -6,8 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(game SHARED src/game.cxx)
-target_link_libraries(game PRIVATE engine)
 
+if (APPLE)
+    target_link_libraries(game PRIVATE engine_lib)
+else ()
+    target_link_libraries(game PRIVATE engine)
+endif ()
 
 add_custom_command(TARGET game POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

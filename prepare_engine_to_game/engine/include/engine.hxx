@@ -10,15 +10,16 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <imgui.h>
 #include <iosfwd>
 #include <memory>
 #include <string>
 #include <string_view>
 
 #include "buffer.hxx"
+#include "program.hxx"
 #include "sprite.hxx"
 #include "texture.hxx"
-#include "program.hxx"
 
 struct Event
 {
@@ -125,6 +126,7 @@ public:
     [[nodiscard]] virtual bool getVSync() const noexcept = 0;
     virtual void setFramerate(int framerate) = 0;
     [[nodiscard]] virtual int getFramerate() const noexcept = 0;
+    [[nodiscard]] virtual ImGuiContext* getCurrentContext() const noexcept = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;

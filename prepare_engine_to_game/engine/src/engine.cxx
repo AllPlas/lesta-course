@@ -512,6 +512,8 @@ public:
 
     [[nodiscard]] int getFramerate() const noexcept override { return m_framerate; }
 
+    ImGuiContext* getCurrentContext() const noexcept override { return ImGui::GetCurrentContext(); }
+
 private:
     static void initSDL() {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD |
@@ -716,6 +718,7 @@ int main(int argc, const char* argv[]) {
                                   tempLibraryName,
                                   *engine,
                                   gameLibraryHandle);
+                game->initialize();
             });
 
             HotReloadProvider::getInstance().addToCheck("vertex_shader", [&]() {
@@ -733,7 +736,6 @@ int main(int argc, const char* argv[]) {
             });
 
             HotReloadProvider::getInstance().check();
-            game->initialize();
 
             bool isEnd{};
             while (!isEnd) {
