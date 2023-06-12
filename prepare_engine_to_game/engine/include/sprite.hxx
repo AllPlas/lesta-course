@@ -37,6 +37,9 @@ private:
     glm::mat3 m_aspectMatrix{ 0.0f };
     glm::mat3 m_rotationMatrix{ 0.0f };
 
+    int m_windowWidth{};
+    int m_windowHeight{};
+
     std::vector<Vertex2> m_vertices{};
     std::vector<uint16_t> m_indices{};
 
@@ -52,6 +55,7 @@ public:
     void setScale(glm::vec2 scale);
 
     void checkAspect(Size size);
+    void updateWindowSize();
 
     [[nodiscard]] const std::vector<Vertex2>& getVertices() const noexcept;
     [[nodiscard]] const std::vector<uint16_t>& getIndices() const noexcept;

@@ -225,12 +225,6 @@ public:
 
         createGLContext();
 
-        glGenVertexArrays(1, &m_verticesArray);
-        openGLCheck();
-
-        glBindVertexArray(m_verticesArray);
-        openGLCheck();
-
         glEnable(GL_DEPTH_TEST);
         openGLCheck();
 
@@ -239,6 +233,14 @@ public:
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         openGLCheck();
+
+        glGenVertexArrays(1, &m_verticesArray);
+        openGLCheck();
+
+        glBindVertexArray(m_verticesArray);
+        openGLCheck();
+
+
 
         SDL_GL_SetSwapInterval(1);
 
@@ -493,7 +495,7 @@ public:
         glDisableVertexAttribArray(2);
     }
 
-    [[nodiscard]] std::pair<int, int> getWindowSize() const noexcept override {
+    [[nodiscard]] WindowSize getWindowSize() const noexcept override {
         int width{};
         int height{};
         SDL_GetWindowSize(m_window, &width, &height);
@@ -512,7 +514,7 @@ public:
 
     [[nodiscard]] int getFramerate() const noexcept override { return m_framerate; }
 
-    ImGuiContext* getCurrentContext() const noexcept override { return ImGui::GetCurrentContext(); }
+    ImGuiContext* getImGuiContext() const noexcept override { return ImGui::GetCurrentContext(); }
 
 private:
     static void initSDL() {
