@@ -240,8 +240,6 @@ public:
         glBindVertexArray(m_verticesArray);
         openGLCheck();
 
-
-
         SDL_GL_SetSwapInterval(1);
 
         // Setup Dear ImGui context
@@ -368,9 +366,9 @@ public:
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        int w{}, h{};
-        SDL_GetWindowSize(m_window, &w, &h);
-        glViewport(0, 0, w, h);
+        int width, height;
+        SDL_GetWindowSizeInPixels(m_window, &width, &height);
+        glViewport(0, 0, width, height);
         openGLCheck();
 
         SDL_GL_SwapWindow(m_window);
