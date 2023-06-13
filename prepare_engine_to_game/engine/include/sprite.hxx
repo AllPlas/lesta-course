@@ -47,12 +47,13 @@ public:
     Sprite(const fs::path& texturePath, Size size);
 
     [[nodiscard]] Position getPosition() const noexcept;
-
     void setPosition(Position position);
 
     [[nodiscard]] Size getSize() const noexcept;
 
     void setScale(glm::vec2 scale);
+
+    void setRotate(float angle);
 
     void checkAspect(Size size);
     void updateWindowSize();

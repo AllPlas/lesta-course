@@ -57,7 +57,7 @@ void Sprite::checkAspect(Sprite::Size size) {
 }
 
 glm::mat3 Sprite::getResultMatrix() const noexcept {
-    auto resultMatrix{ m_scaleMatrix * m_aspectMatrix * m_moveMatrix * m_rotationMatrix };
+    auto resultMatrix{ m_moveMatrix * m_scaleMatrix * m_aspectMatrix * m_rotationMatrix };
     return resultMatrix;
 }
 
@@ -93,3 +93,5 @@ void Sprite::updateWindowSize() {
     m_windowWidth = getEngineInstance()->getWindowSize().width;
     m_windowHeight = getEngineInstance()->getWindowSize().height;
 }
+
+void Sprite::setRotate(float angle) {}
