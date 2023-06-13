@@ -10,8 +10,10 @@ using namespace std::literals;
 class PirateGame : public IGame
 {
 private:
-    Sprite sprite{ "/Users/aleksey/Downloads/kenney_pirate-pack/PNG/Default size/Ships/ship (14).png",
-                   { 84, 92 } };
+    Sprite sprite{
+        "/Users/aleksey/Downloads/kenney_pirate-pack/PNG/Default size/Ships/ship (14).png",
+        { 84, 92 }
+    };
 
     Sprite crate{ "/Users/aleksey/Downloads/Water Top.png", { 100, 100 } };
 
@@ -21,9 +23,24 @@ private:
     int m_framerate{ 150 };
     std::vector<Sprite::Position> m_cratesPositions{};
 
-    float acceleration = 1.f;  // Ускорение объекта
+    float acceleration = 20.f; // Ускорение объекта
+    float deceleration = 2 * acceleration;
     float maxSpeed = 100.0f;   // Максимальная скорость объекта
     float currentSpeed = 0.0f; // Текущая скорость объекта
+
+    bool m_isMove{ false };
+    bool is_binding_key = false;
+    Event::Keyboard::Key* binding_key = nullptr;
+    ImGuiKey m_key{};
+
+    struct Config
+    {
+        Config() = delete;
+        inline static Event::Keyboard::Key move_key{ Event::Keyboard::Key::w };
+        inline static Event::Keyboard::Key rotate_left_key{ Event::Keyboard::Key::a };
+        inline static Event::Keyboard::Key rotate_right_key{ Event::Keyboard::Key::d };
+        inline static Event::Keyboard::Key interact_key{ Event::Keyboard::Key::space };
+    };
 
 public:
     void initialize() override {
@@ -49,16 +66,13 @@ public:
             if (event.keyboard.key == Event::Keyboard::Key::l_control)
                 m_isDebugMenuOn = !m_isDebugMenuOn;
 
-            if (event.keyboard.key == Event::Keyboard::Key::w) {
-                currentSpeed += acceleration;
-                if (currentSpeed > maxSpeed) { currentSpeed = maxSpeed; }
-            }
+            if (event.keyboard.key == Config::move_key) { m_isMove = true; }
 
             if (event.keyboard.key == Event::Keyboard::Key::l_shift) sprite.setScale({ 0.5, 0.5 });
         }
 
         if (event.type == Event::Type::key_up) {
-            if (event.keyboard.key == Event::Keyboard::Key::w) { currentSpeed = 0; }
+            if (event.keyboard.key == Config::move_key) { m_isMove = false; }
         }
     }
 
@@ -77,12 +91,20 @@ public:
                 .count();
         time = std::chrono::steady_clock::now();
 
+        if (m_isMove) {
+            currentSpeed += acceleration * timeElapsed;
+            if (currentSpeed > maxSpeed) { currentSpeed = maxSpeed; }
+        }
+        else {
+            currentSpeed -= deceleration * timeElapsed;
+            if (currentSpeed < 0) currentSpeed = 0;
+        }
         float deltaY = currentSpeed * timeElapsed;
         sprite.setPosition({ sprite.getPosition().x, sprite.getPosition().y + deltaY });
 
-        sprite.updateWindowSize();
+        //  sprite.updateWindowSize();
         //    crate.updateWindowSize();
-        sprite.checkAspect({ 800, 600 });
+        // sprite.checkAspect({ 800, 600 });
         //    crate.checkAspect({ 800, 600 });
         // sprite.setPosition({ 0.2, 0.2 });
 
@@ -102,6 +124,25 @@ public:
             if (m_debugTankInfo) {
                 ImGui::Text(
                     "pos x: %.1f\npos y: %.1f", sprite.getPosition().x, sprite.getPosition().y);
+            }
+
+            ImGui::Text("Move key: %s", ImGui::GetKeyName(m_key));
+            auto it = ImGui::GetKeyIndex(ImGuiKey_D);
+            ImGui::SameLine();
+            if (ImGui::Button("change key")) { is_binding_key = true; }
+            if (is_binding_key) {
+                ImGui::Text("Waiting for keyboard input...");
+                for (ImGuiKey key{ ImGuiKey_NamedKey_BEGIN }; key < ImGuiKey_NamedKey_END;
+                     key = static_cast<ImGuiKey>(key + 1)) {
+                    if (ImGui::IsKeyPressed(key)) {
+                        m_key = key;
+
+                        if (m_key == ImGuiKey_D) Config::move_key = Event::Keyboard::Key::d;
+
+                        is_binding_key = false;
+                        break;
+                    }
+                }
             }
 
             ImGui::End();
