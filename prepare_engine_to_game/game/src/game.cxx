@@ -148,6 +148,10 @@ public:
             ImGui::End();
         }
     }
+
+    void setupKeyBinds() {
+
+    }
 };
 
 IGame* createGame(IEngine* engine) {

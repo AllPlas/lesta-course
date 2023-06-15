@@ -345,16 +345,7 @@ public:
 
     void renderTriangle(const Triangle& triangle, const Texture& texture) override {
         m_program.use();
-
-        auto texture1{ glGetUniformLocation(*m_program, "texSampler") };
-        openGLCheck();
-
-        glUniform1i(texture1, 0);
-        openGLCheck();
-
-        glActiveTexture(GL_TEXTURE0);
-        openGLCheck();
-
+        m_program.setUniform("texSampler", texture);
         texture.bind();
         renderTriangle(triangle);
     }

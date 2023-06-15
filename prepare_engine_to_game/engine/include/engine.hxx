@@ -17,7 +17,7 @@
 #include <string_view>
 
 #include "buffer.hxx"
-#include "program.hxx"
+#include "shader_program.hxx"
 #include "sprite.hxx"
 #include "texture.hxx"
 
