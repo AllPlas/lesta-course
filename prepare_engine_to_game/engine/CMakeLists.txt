@@ -18,8 +18,8 @@ if (APPLE)
             glad/src/glad.c
             src/hot_reload_provider.hxx
             src/hot_reload_provider.cxx
-            src/program.cxx
-            include/program.hxx
+            src/shader_program.cxx
+            include/shader_program.hxx
             src/opengl_check.cxx
             src/opengl_check.hxx
             src/texture.cxx
@@ -46,8 +46,8 @@ else ()
             glad/src/glad.c
             src/hot_reload_provider.hxx
             src/hot_reload_provider.cxx
-            src/program.cxx
-            include/program.hxx
+            src/shader_program.cxx
+            include/shader_program.hxx
             src/opengl_check.cxx
             src/opengl_check.hxx
             src/texture.cxx
