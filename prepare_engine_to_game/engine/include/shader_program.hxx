@@ -7,6 +7,8 @@
 
 #include <filesystem>
 
+#include "texture.hxx"
+
 namespace fs = std::filesystem;
 
 class ShaderProgram final
@@ -24,6 +26,8 @@ public:
 
     void recompileShaders(const fs::path& vertPath, const fs::path& fragPath);
     void use() const;
+    void setUniform(std::string_view name, float value) const;
+    void setUniform(std::string_view name, const Texture& texture) const;
 
     std::uint32_t operator*() const noexcept;
 

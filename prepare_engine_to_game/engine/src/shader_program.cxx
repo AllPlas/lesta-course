@@ -1,4 +1,4 @@
-#include "program.hxx"
+#include "shader_program.hxx"
 
 #include <fstream>
 #include <glad/glad.h>
@@ -121,4 +121,23 @@ GLuint ShaderProgram::operator*() const noexcept { return m_program; }
 
 ShaderProgram::~ShaderProgram() {
     if (m_program) glDeleteProgram(m_program);
+}
+
+void ShaderProgram::setUniform(std::string_view name, float value) const {
+    auto location{ glGetUniformLocation(m_program, name.data()) };
+    openGLCheck();
+
+    glUniform1f(location, value);
+    openGLCheck();
+}
+
+void ShaderProgram::setUniform(std::string_view name, const Texture& texture) const {
+    auto location{ glGetUniformLocation(m_program, name.data()) };
+    openGLCheck();
+
+    glUniform1i(location, 0);
+    openGLCheck();
+
+    glActiveTexture(GL_TEXTURE0);
+    openGLCheck();
 }
