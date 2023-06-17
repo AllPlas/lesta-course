@@ -31,7 +31,9 @@ if (APPLE)
             src/imgui_impl_opengl3.cxx
             src/imgui_impl_opengl3.hxx
             src/sprite.cxx
-            include/sprite.hxx)
+            include/sprite.hxx
+            src/view.cxx
+    )
 
     target_include_directories(engine_lib PUBLIC include)
     target_include_directories(engine_lib PRIVATE glad/include)
@@ -59,7 +61,8 @@ else ()
             src/imgui_impl_opengl3.cxx
             src/imgui_impl_opengl3.hxx
             src/sprite.cxx
-            include/sprite.hxx)
+            include/sprite.hxx
+            src/view.cxx)
 
     set_target_properties(engine PROPERTIES ENABLE_EXPORTS 1)
 
