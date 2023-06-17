@@ -78,10 +78,23 @@ Sprite::Size Sprite::getSize() const noexcept {
              m_size.height * m_scaleMatrix[0][0] * m_aspectMatrix[0][0] };
 }
 
-void Sprite::setScale(glm::vec2 scale) {
-    m_scaleMatrix[0][0] = scale.x;
-    m_scaleMatrix[1][1] = scale.y;
+void Sprite::setScale(float scale) {
+    m_scale = scale;
+    m_scaleMatrix[0][0] = scale;
+    m_scaleMatrix[1][1] = scale;
 }
+
+float Sprite::getScale() const noexcept { return m_scale; }
+
+void Sprite::setRotate(float angle) {
+    m_rotationAngle = angle * std::numbers::pi / 180;
+    m_rotationMatrix[0][0] = std::cos(m_rotationAngle);
+    m_rotationMatrix[0][1] = std::sin(m_rotationAngle);
+    m_rotationMatrix[1][0] = -std::sin(m_rotationAngle);
+    m_rotationMatrix[1][1] = std::cos(m_rotationAngle);
+}
+
+float Sprite::getRotate() const noexcept { return m_rotationAngle * 180 / std::numbers::pi; }
 
 const std::vector<Vertex2>& Sprite::getVertices() const noexcept { return m_vertices; }
 
@@ -93,5 +106,3 @@ void Sprite::updateWindowSize() {
     m_windowWidth = getEngineInstance()->getWindowSize().width;
     m_windowHeight = getEngineInstance()->getWindowSize().height;
 }
-
-void Sprite::setRotate(float angle) {}

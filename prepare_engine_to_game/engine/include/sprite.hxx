@@ -29,6 +29,8 @@ public:
 private:
     Position m_position{};
     Size m_size{};
+    float m_scale{ 1.0f };
+    float m_rotationAngle{ 0.0f };
 
     Texture m_texture{};
 
@@ -51,9 +53,11 @@ public:
 
     [[nodiscard]] Size getSize() const noexcept;
 
-    void setScale(glm::vec2 scale);
+    void setScale(float scale);
+    [[nodiscard]] float getScale() const noexcept;
 
     void setRotate(float angle);
+    [[nodiscard]] float getRotate() const noexcept;
 
     void checkAspect(Size size);
     void updateWindowSize();
