@@ -10,12 +10,9 @@ using namespace std::literals;
 class PirateGame : public IGame
 {
 private:
-    Sprite sprite{
-        "/Users/aleksey/Downloads/kenney_pirate-pack/PNG/Default size/Ships/ship (14).png",
-        { 84, 92 }
-    };
-
-    Sprite crate{ "/Users/aleksey/Downloads/Water Top.png", { 100, 100 } };
+    Sprite* sprite{};
+    Sprite* crate{};
+    View m_view{};
 
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
@@ -43,8 +40,28 @@ private:
     };
 
 public:
+    ~PirateGame() noexcept override {
+        delete sprite;
+        delete crate;
+    }
+
     void initialize() override {
+        getEngineInstance()->initialize(R"(
+{
+    "window_name": "Pirate Game",
+    "window_width": 800,
+    "window_height": 600,
+    "is_window_resizable": false
+}
+)");
+
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
+        sprite =
+            new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/ship.png",
+                        { 84, 94 } };
+        crate =
+            new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/water.png",
+                        { 100, 100 } };
 
         float screenCenterX = 800.0f / 2.0f;
         float screenCenterY = 600.0f / 2.0f;
@@ -68,7 +85,18 @@ public:
 
             if (event.keyboard.key == Config::move_key) { m_isMove = true; }
 
-            if (event.keyboard.key == Event::Keyboard::Key::l_shift) sprite.setScale({ 0.5, 0.5 });
+            if (event.keyboard.key == Config::rotate_left_key) {
+                sprite->setRotate(sprite->getRotate() + 1);
+                if (sprite->getRotate() > 360) sprite->setRotate(sprite->getRotate() - 360);
+            }
+
+            if (event.keyboard.key == Config::rotate_right_key) {
+                sprite->setRotate(sprite->getRotate() - 1);
+                if (sprite->getRotate() < 0) sprite->setRotate(sprite->getRotate() + 360);
+            }
+
+            if (event.keyboard.key == Event::Keyboard::Key::l_shift)
+                sprite->setScale(sprite->getScale() == 0.5f ? 1.0f : 0.5f);
         }
 
         if (event.type == Event::Type::key_up) {
@@ -77,10 +105,10 @@ public:
     }
 
     void render() override {
-        getEngineInstance()->render(sprite);
+        getEngineInstance()->render(*sprite, m_view);
         std::ranges::for_each(m_cratesPositions, [&](const auto& pos) {
-            crate.setPosition(pos);
-            getEngineInstance()->render(crate);
+            crate->setPosition(pos);
+            getEngineInstance()->render(*crate, m_view);
         });
     }
 
@@ -99,8 +127,21 @@ public:
             currentSpeed -= deceleration * timeElapsed;
             if (currentSpeed < 0) currentSpeed = 0;
         }
+        float deltaX = 0.0f;
         float deltaY = currentSpeed * timeElapsed;
-        sprite.setPosition({ sprite.getPosition().x, sprite.getPosition().y + deltaY });
+
+        // Предполагая, что angle - угол в градусах
+        float angleInRadians = sprite->getRotate() * (std::numbers::pi / 180.0);
+
+        // Вычисление новых координат
+        float newX = sprite->getPosition().x + deltaX * std::cos(angleInRadians) -
+                     deltaY * std::sin(angleInRadians);
+        float newY = sprite->getPosition().y + deltaX * std::sin(angleInRadians) +
+                     deltaY * std::cos(angleInRadians);
+
+        sprite->setPosition({ newX, newY });
+        m_view.setPosition(sprite->getPosition().x / 400, sprite->getPosition().y / 300);
+        m_view.setScale(0.5);
 
         //  sprite.updateWindowSize();
         //    crate.updateWindowSize();
@@ -120,10 +161,13 @@ public:
                 getEngineInstance()->setVSync(!getEngineInstance()->getVSync());
             }
 
-            ImGui::Checkbox("Debug Tank info", &m_debugTankInfo);
+            ImGui::Checkbox("Debug Ship info", &m_debugTankInfo);
             if (m_debugTankInfo) {
-                ImGui::Text(
-                    "pos x: %.1f\npos y: %.1f", sprite.getPosition().x, sprite.getPosition().y);
+                ImGui::Text("pos x: %.1f\npos y: %.1f\nangle: %.1f\nspeed: %.1f",
+                            sprite->getPosition().x,
+                            sprite->getPosition().y,
+                            sprite->getRotate(),
+                            currentSpeed);
             }
 
             ImGui::Text("Move key: %s", ImGui::GetKeyName(m_key));
@@ -149,9 +193,7 @@ public:
         }
     }
 
-    void setupKeyBinds() {
-
-    }
+    void setupKeyBinds() {}
 };
 
 IGame* createGame(IEngine* engine) {
