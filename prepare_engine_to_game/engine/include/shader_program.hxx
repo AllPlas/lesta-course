@@ -16,6 +16,8 @@ class ShaderProgram final
 private:
     std::uint32_t m_program{};
 
+    inline static std::string s_glslVersion{ "#version 330" };
+
 public:
     ShaderProgram() = default;
     ShaderProgram(const fs::path& vertPath, const fs::path& fragPath);
@@ -30,6 +32,10 @@ public:
     void setUniform(std::string_view name, const Texture& texture) const;
 
     std::uint32_t operator*() const noexcept;
+
+    static void setGLSLVersion(const std::string& version);
+
+    void clear();
 
 private:
     static std::uint32_t compileShader(std::uint32_t type, const fs::path& path);

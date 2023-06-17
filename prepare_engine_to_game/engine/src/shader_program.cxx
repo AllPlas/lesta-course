@@ -81,7 +81,7 @@ void ShaderProgram::recompileShaders(const fs::path& vertPath, const fs::path& f
 GLuint ShaderProgram::compileShader(GLenum type, const fs::path& path) {
     GLuint shader{ glCreateShader(type) };
     openGLCheck();
-    std::string shaderSource{ readFile(path) };
+    std::string shaderSource{ s_glslVersion + '\n' + readFile(path) };
     const char* source{ shaderSource.c_str() };
 
     glShaderSource(shader, 1, &source, nullptr);
@@ -140,4 +140,12 @@ void ShaderProgram::setUniform(std::string_view name, const Texture& texture) co
 
     glActiveTexture(GL_TEXTURE0);
     openGLCheck();
+}
+
+void ShaderProgram::setGLSLVersion(const std::string& version) { s_glslVersion = version; }
+
+void ShaderProgram::clear() {
+    glDeleteProgram(m_program);
+    openGLCheck();
+    m_program = 0;
 }
