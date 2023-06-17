@@ -20,6 +20,7 @@
 #include "shader_program.hxx"
 #include "sprite.hxx"
 #include "texture.hxx"
+#include "view.hxx"
 
 struct Event
 {
@@ -133,6 +134,7 @@ public:
     virtual void setFramerate(int framerate) = 0;
     [[nodiscard]] virtual int getFramerate() const noexcept = 0;
     [[nodiscard]] virtual ImGuiContext* getImGuiContext() const noexcept = 0;
+    virtual void render(const Sprite& sprite, const View& view) = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;

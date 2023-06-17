@@ -180,6 +180,8 @@ private:
 
     int m_framerate{ 150 };
 
+    View m_view{};
+
 public:
     EngineImpl() = default;
 
@@ -193,6 +195,10 @@ public:
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
         auto jsonValue(json::parse(config));
+
+        auto windowName{ jsonValue.as_object().contains("window_name")
+                             ? jsonValue.as_object().at("window_name").as_string()
+                             : "SDL + OPENGL"sv };
 
         auto width{ jsonValue.as_object().contains("window_width")
                         ? jsonValue.as_object().at("window_width").as_int64()
@@ -217,8 +223,11 @@ public:
         flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN;
         if (isWindowResizable) flags |= SDL_WINDOW_RESIZABLE;
 
-        m_window = createWindow(
-            static_cast<int>(width), static_cast<int>(height), static_cast<SDL_WindowFlags>(flags));
+        m_window = createWindow(windowName,
+                                static_cast<int>(width),
+                                static_cast<int>(height),
+                                static_cast<SDL_WindowFlags>(flags));
+
         SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         SDL_SetWindowMinimumSize(m_window, static_cast<int>(minWidth), static_cast<int>(minHeight));
         SDL_ShowWindow(m_window);
@@ -265,6 +274,8 @@ public:
     void uninitialize() override {
         glDeleteVertexArrays(1, &m_verticesArray);
         openGLCheck();
+
+        m_program.clear();
 
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL3_Shutdown();
@@ -503,7 +514,15 @@ public:
 
     [[nodiscard]] int getFramerate() const noexcept override { return m_framerate; }
 
-    ImGuiContext* getImGuiContext() const noexcept override { return ImGui::GetCurrentContext(); }
+    [[nodiscard]] ImGuiContext* getImGuiContext() const noexcept override {
+        return ImGui::GetCurrentContext();
+    }
+
+    void render(const Sprite& sprite, const View& view) override {
+        auto matViewLoc{ glGetUniformLocation(*m_program, "viewMatrix") };
+        glUniformMatrix3fv(matViewLoc, 1, GL_FALSE, glm::value_ptr(view.getViewMatrix()));
+        render(sprite);
+    }
 
 private:
     static void initSDL() {
@@ -512,8 +531,9 @@ private:
             throw std::runtime_error{ "Error : failed call SDL_Init: "s + SDL_GetError() };
     }
 
-    static SDL_Window* createWindow(int width, int height, SDL_WindowFlags flags) {
-        if (auto window{ SDL_CreateWindow("OpenGL test", width, height, flags) }; window != nullptr)
+    static SDL_Window*
+    createWindow(std::string_view name, int width, int height, SDL_WindowFlags flags) {
+        if (auto window{ SDL_CreateWindow(name.data(), width, height, flags) }; window != nullptr)
             return window;
 
         SDL_Quit();
@@ -536,16 +556,19 @@ private:
         int gl_major_ver{ 3 };
         int gl_minor_ver{ 0 };
         int gl_context_profile{ SDL_GL_CONTEXT_PROFILE_ES };
+        std::string glslVersion{ "#version 300 es" };
 
         if (platform == "macOS") {
             gl_major_ver = 4;
             gl_minor_ver = 1;
             gl_context_profile = SDL_GL_CONTEXT_PROFILE_CORE;
+            glslVersion = "#version 410 core"s;
         }
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, gl_context_profile);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major_ver);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor_ver);
+        ShaderProgram::setGLSLVersion(glslVersion);
 
         m_glContext = SDL_GL_CreateContext(m_window);
         if (m_glContext == nullptr)
@@ -690,9 +713,7 @@ int main(int argc, const char* argv[]) {
         if (auto args{ parseCommandLine(argc, argv) }) {
             createEngine();
             auto& engine{ getEngineInstance() };
-            auto answer{ engine->initialize(R"({
-"is_window_resizable": true
-})") };
+            auto answer{ engine->initialize("{}") };
             if (!answer.empty()) { return EXIT_FAILURE; }
             std::cout << "start app"sv << std::endl;
 
@@ -709,7 +730,11 @@ int main(int argc, const char* argv[]) {
                                   tempLibraryName,
                                   *engine,
                                   gameLibraryHandle);
+                engine->uninitialize();
                 game->initialize();
+                engine->recompileShaders(
+                    HotReloadProvider::getInstance().getPath("vertex_shader"),
+                    HotReloadProvider::getInstance().getPath("fragment_shader"));
             });
 
             HotReloadProvider::getInstance().addToCheck("vertex_shader", [&]() {
