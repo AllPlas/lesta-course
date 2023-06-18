@@ -120,21 +120,19 @@ public:
     virtual std::string initialize([[maybe_unused]] std::string_view config) = 0;
     virtual void uninitialize() = 0;
     virtual bool readInput(Event& event) = 0;
-    virtual void renderTriangle(const Triangle& triangle) = 0;
-    virtual void renderTriangle(const Triangle& triangle, const Texture& texture) = 0;
     virtual void swapBuffers() = 0;
-    virtual void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) = 0;
+    virtual void recompileShaders() = 0;
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint16_t>& indexBuffer,
                         const Texture& texture) = 0;
     virtual void render(const Sprite& sprite) = 0;
+    virtual void render(const Sprite& sprite, const View& view) = 0;
     [[nodiscard]] virtual WindowSize getWindowSize() const noexcept = 0;
     virtual void setVSync(bool isEnable) = 0;
     [[nodiscard]] virtual bool getVSync() const noexcept = 0;
     virtual void setFramerate(int framerate) = 0;
     [[nodiscard]] virtual int getFramerate() const noexcept = 0;
     [[nodiscard]] virtual ImGuiContext* getImGuiContext() const noexcept = 0;
-    virtual void render(const Sprite& sprite, const View& view) = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;

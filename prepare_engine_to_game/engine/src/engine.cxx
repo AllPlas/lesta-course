@@ -174,13 +174,14 @@ class EngineImpl final : public IEngine
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
-
-    ShaderProgram m_program{};
     GLuint m_verticesArray{};
 
-    int m_framerate{ 150 };
+    ShaderProgram m_shaderProgram{};
+    ShaderProgram m_shaderProgramWithView{};
 
-    View m_view{};
+    std::reference_wrapper<ShaderProgram> m_program{ m_shaderProgram };
+
+    int m_framerate{ 150 };
 
 public:
     EngineImpl() = default;
@@ -249,6 +250,8 @@ public:
         glBindVertexArray(m_verticesArray);
         openGLCheck();
 
+        recompileShaders();
+
         SDL_GL_SetSwapInterval(1);
 
         // Setup Dear ImGui context
@@ -261,7 +264,6 @@ public:
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
-        // ImGui::StyleColorsLight();
 
         // Setup Platform/Renderer backends
         ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
@@ -275,7 +277,8 @@ public:
         glDeleteVertexArrays(1, &m_verticesArray);
         openGLCheck();
 
-        m_program.clear();
+        m_shaderProgram.clear();
+        m_shaderProgramWithView.clear();
 
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL3_Shutdown();
@@ -316,55 +319,7 @@ public:
         return false;
     }
 
-    void renderTriangle(const Triangle& triangle) override {
-        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
-
-        //  glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(matrix));
-        std::vector<Vertex> vert{ triangle.vertices.begin(), triangle.vertices.end() };
-        VertexBuffer<Vertex> vb{ std::move(vert) };
-        std::vector<uint16_t> idx{ 0, 1, 2 };
-        IndexBuffer ib{ std::move(idx) };
-        vb.bind();
-        ib.bind();
-
-        glValidateProgram(*m_program);
-        openGLCheck();
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-        openGLCheck();
-
-        glEnableVertexAttribArray(0);
-        openGLCheck();
-
-        glVertexAttribPointer(1,
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              sizeof(Vertex),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex, texX)));
-        openGLCheck();
-
-        glEnableVertexAttribArray(1);
-        openGLCheck();
-
-        glDrawElements(GL_TRIANGLES, ib.size(), GL_UNSIGNED_SHORT, nullptr);
-        openGLCheck();
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-    }
-
-    void renderTriangle(const Triangle& triangle, const Texture& texture) override {
-        m_program.use();
-        m_program.setUniform("texSampler", texture);
-        texture.bind();
-        renderTriangle(triangle);
-    }
-
     void swapBuffers() override {
-        bool show_demo_window{ true };
-
-        if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -382,29 +337,25 @@ public:
         openGLCheck();
     }
 
-    void recompileShaders(std::string_view vertexPath, std::string_view fragmentPath) override {
-        m_program.recompileShaders(vertexPath, fragmentPath);
-        m_program.use();
+    void recompileShaders() override {
+        m_shaderProgram.recompileShaders(
+            HotReloadProvider::getInstance().getPath("vertex_shader_without_view"),
+            HotReloadProvider::getInstance().getPath("fragment_shader"));
 
-        auto texture{ glGetUniformLocation(*m_program, "texSampler") };
-        openGLCheck();
+        m_shaderProgramWithView.recompileShaders(
+            HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
+            HotReloadProvider::getInstance().getPath("fragment_shader"));
 
-        glUniform1i(texture, 0);
-        openGLCheck();
-
-        glActiveTexture(GL_TEXTURE0);
-        openGLCheck();
+        m_program.get().use();
     }
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint16_t>& indexBuffer,
                 const Texture& texture) override {
-        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
-        glm::mat3 mat{};
-        mat[0][0] = 1;
-        mat[1][1] = 1;
-        mat[2][2] = 1;
-        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(mat));
+        m_program.get().use();
+        glm::mat3 mat{ 1.0f };
+        m_program.get().setUniform("matrix", mat);
+        m_program.get().setUniform("texSampler", texture);
 
         texture.bind();
         vertexBuffer.bind();
@@ -448,8 +399,9 @@ public:
     }
 
     void render(const Sprite& sprite) override {
-        auto matLoc{ glGetUniformLocation(*m_program, "matrix") };
-        glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(sprite.getResultMatrix()));
+        m_program.get().use();
+        m_program.get().setUniform("matrix", sprite.getResultMatrix());
+        m_program.get().setUniform("texSampler", sprite.getTexture());
 
         VertexBuffer vertexBuffer{ sprite.getVertices() };
         IndexBuffer indexBuffer{ sprite.getIndices() };
@@ -495,6 +447,15 @@ public:
         glDisableVertexAttribArray(2);
     }
 
+    void render(const Sprite& sprite, const View& view) override {
+        ShaderProgram& lastProgram{ m_program.get() };
+        m_program = m_shaderProgramWithView;
+        m_program.get().use();
+        m_program.get().setUniform("viewMatrix", view.getViewMatrix());
+        render(sprite);
+        m_program = lastProgram;
+    }
+
     [[nodiscard]] WindowSize getWindowSize() const noexcept override {
         int width{};
         int height{};
@@ -516,12 +477,6 @@ public:
 
     [[nodiscard]] ImGuiContext* getImGuiContext() const noexcept override {
         return ImGui::GetCurrentContext();
-    }
-
-    void render(const Sprite& sprite, const View& view) override {
-        auto matViewLoc{ glGetUniformLocation(*m_program, "viewMatrix") };
-        glUniformMatrix3fv(matViewLoc, 1, GL_FALSE, glm::value_ptr(view.getViewMatrix()));
-        render(sprite);
     }
 
 private:
@@ -711,13 +666,13 @@ Triangle getTransformedTriangle(const Triangle& t, const glm::mat3& matrix) {
 int main(int argc, const char* argv[]) {
     try {
         if (auto args{ parseCommandLine(argc, argv) }) {
+            HotReloadProvider::setPath(args->configFilePath);
+
             createEngine();
             auto& engine{ getEngineInstance() };
             auto answer{ engine->initialize("{}") };
             if (!answer.empty()) { return EXIT_FAILURE; }
             std::cout << "start app"sv << std::endl;
-
-            HotReloadProvider::setPath(args->configFilePath);
 
             std::string_view tempLibraryName{ "./temp.dll" };
             void* gameLibraryHandle{};
@@ -732,23 +687,21 @@ int main(int argc, const char* argv[]) {
                                   gameLibraryHandle);
                 engine->uninitialize();
                 game->initialize();
-                engine->recompileShaders(
-                    HotReloadProvider::getInstance().getPath("vertex_shader"),
-                    HotReloadProvider::getInstance().getPath("fragment_shader"));
             });
 
-            HotReloadProvider::getInstance().addToCheck("vertex_shader", [&]() {
+            HotReloadProvider::getInstance().addToCheck("vertex_shader_with_view", [&]() {
                 std::cout << "recompile shaders\n"sv;
-                engine->recompileShaders(
-                    HotReloadProvider::getInstance().getPath("vertex_shader"),
-                    HotReloadProvider::getInstance().getPath("fragment_shader"));
+                engine->recompileShaders();
+            });
+
+            HotReloadProvider::getInstance().addToCheck("vertex_shader_without_view", [&]() {
+                std::cout << "recompile shaders\n"sv;
+                engine->recompileShaders();
             });
 
             HotReloadProvider::getInstance().addToCheck("fragment_shader", [&]() {
                 std::cout << "recompile shaders\n"sv;
-                engine->recompileShaders(
-                    HotReloadProvider::getInstance().getPath("vertex_shader"),
-                    HotReloadProvider::getInstance().getPath("fragment_shader"));
+                engine->recompileShaders();
             });
 
             HotReloadProvider::getInstance().check();
@@ -756,7 +709,6 @@ int main(int argc, const char* argv[]) {
             bool isEnd{};
             while (!isEnd) {
                 std::uint64_t frameStart{ SDL_GetTicks() };
-
                 HotReloadProvider::getInstance().check();
                 Event event{};
                 while (engine->readInput(event)) {
@@ -779,7 +731,7 @@ int main(int argc, const char* argv[]) {
 
                 engine->swapBuffers();
 
-                if (!engine->getVSync()) {
+                if (!engine->getVSync() && engine->getFramerate() < 300) {
                     int frameDelay = 1000 / engine->getFramerate();
                     std::uint64_t frameTime{ SDL_GetTicks() - frameStart };
                     if (frameTime < frameDelay) SDL_Delay(frameDelay - frameTime);
