@@ -5,6 +5,8 @@
 #ifndef VERTEX_MORPHING_PROGRAM_HXX
 #define VERTEX_MORPHING_PROGRAM_HXX
 
+#include <glm/glm.hpp>
+
 #include <filesystem>
 
 #include "texture.hxx"
@@ -30,8 +32,10 @@ public:
     void use() const;
     void setUniform(std::string_view name, float value) const;
     void setUniform(std::string_view name, const Texture& texture) const;
+    void setUniform(std::string_view name, const glm::mat3& matrix) const;
 
-    std::uint32_t operator*() const noexcept;
+        std::uint32_t
+        operator*() const noexcept;
 
     static void setGLSLVersion(const std::string& version);
 

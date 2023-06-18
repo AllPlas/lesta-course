@@ -1,5 +1,7 @@
 #include "shader_program.hxx"
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <fstream>
 #include <glad/glad.h>
 #include <vector>
@@ -139,6 +141,14 @@ void ShaderProgram::setUniform(std::string_view name, const Texture& texture) co
     openGLCheck();
 
     glActiveTexture(GL_TEXTURE0);
+    openGLCheck();
+}
+
+void ShaderProgram::setUniform(std::string_view name, const glm::mat3& matrix) const {
+    auto location{ glGetUniformLocation(m_program, name.data()) };
+    openGLCheck();
+
+    glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
     openGLCheck();
 }
 
