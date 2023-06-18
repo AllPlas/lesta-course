@@ -1,5 +1,6 @@
 {
   "game": "/Users/aleksey/lesta-course/prepare_engine_to_game/cmake-build-debug/engine/libgame.dylib",
-  "vertex_shader": "/Users/aleksey/lesta-course/prepare_engine_to_game/data/shaders/vertex_shader.vert",
-  "fragment_shader": "/Users/aleksey/lesta-course/prepare_engine_to_game/data/shaders/fragment_shader.frag"
+  "vertex_shader_with_view": "shaders/vertex_shader_with_view.vert",
+  "vertex_shader_without_view": "shaders/vertex_shader_without_view.vert",
+  "fragment_shader": "shaders/fragment_shader.frag"
 }
