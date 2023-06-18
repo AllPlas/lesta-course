@@ -28,7 +28,8 @@ void HotReloadProvider::check() {
 
 void HotReloadProvider::readFile() {
     std::ifstream in{ m_configPath };
-    if (!in.is_open()) throw std::runtime_error{ "Error : extractGame : bad open file"s };
+    if (!in.is_open())
+        throw std::runtime_error{ "Error : HotReloadProvider::readFile : bad open file"s };
 
     m_fileData.clear();
     while (in) {
