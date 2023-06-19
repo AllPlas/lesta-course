@@ -6,6 +6,7 @@
 #define VERTEX_MORPHING_SPRITE_HXX
 #include <glm/glm.hpp>
 
+#include <optional>
 #include <vector>
 
 #include "buffer.hxx"
@@ -66,6 +67,11 @@ public:
     [[nodiscard]] const std::vector<uint16_t>& getIndices() const noexcept;
     [[nodiscard]] const Texture& getTexture() const noexcept;
     [[nodiscard]] glm::mat3 getResultMatrix() const noexcept;
+
+
+    friend bool intersect(const Sprite& s1, const Sprite& s2);
 };
+
+bool intersect(const Sprite& s1, const Sprite& s2);
 
 #endif // VERTEX_MORPHING_SPRITE_HXX

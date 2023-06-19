@@ -106,3 +106,37 @@ void Sprite::updateWindowSize() {
     m_windowWidth = getEngineInstance()->getWindowSize().width;
     m_windowHeight = getEngineInstance()->getWindowSize().height;
 }
+
+struct LineSegment
+{
+    float start{};
+    float end{};
+};
+
+bool intersect(LineSegment l1, LineSegment l2) {
+    float left{ std::max(l1.start, l2.start) };
+    float right{ std::min(l1.end, l2.end) };
+
+    if (right < left) return false;
+
+    return true;
+}
+
+bool intersect(const Sprite& s1, const Sprite& s2) {
+    float leftS1x{ s1.getPosition().x - s1.getSize().width / 2.0f };
+    float rightS1x{ s1.getPosition().x + s1.getSize().width / 2.0f };
+    float lowS1y{ s1.getPosition().y - s1.getSize().height / 2.0f };
+    float upS1y{ s1.getPosition().y + s1.getSize().height / 2.0f };
+
+    float leftS2x{ s2.getPosition().x - s2.getSize().width / 2.0f };
+    float rightS2x{ s2.getPosition().x + s2.getSize().width / 2.0f };
+    float lowS2y{ s2.getPosition().y - s2.getSize().height / 2.0f };
+    float upS2y{ s2.getPosition().y + s2.getSize().height / 2.0f };
+
+    auto px{ intersect({ leftS1x, rightS1x }, { leftS2x, rightS2x }) };
+    auto py{ intersect({ lowS1y, upS1y }, { lowS2y, upS2y }) };
+
+    if (!px || !py) return false;
+
+    return true;
+}
