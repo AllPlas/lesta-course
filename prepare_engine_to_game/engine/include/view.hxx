@@ -3,17 +3,17 @@
 
 #include <glm/glm.hpp>
 
+#include "structures.hxx"
+
 class View
 {
 private:
-    float m_x{};
-    float m_y{};
-
+    Position m_position{};
     float m_scale{ 1.0f };
 
 public:
     [[nodiscard]] glm::mat3 getViewMatrix() const;
-    void setPosition(float x, float y);
+    void setPosition(Position position);
     void setScale(float scale);
 };
 
