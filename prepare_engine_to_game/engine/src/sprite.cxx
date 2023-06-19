@@ -2,7 +2,7 @@
 
 #include "engine.hxx"
 
-Sprite::Sprite(const fs::path& texturePath, Sprite::Size size)
+Sprite::Sprite(const fs::path& texturePath, Size size)
     : m_size{ size }
     , m_windowWidth{ getEngineInstance()->getWindowSize().width }
     , m_windowHeight{ getEngineInstance()->getWindowSize().height } {
@@ -51,7 +51,7 @@ Sprite::Sprite(const fs::path& texturePath, Sprite::Size size)
     m_indices = { 0, 1, 2, 0, 2, 3 };
 }
 
-void Sprite::checkAspect(Sprite::Size size) {
+void Sprite::checkAspect(Size size) {
     m_aspectMatrix[0][0] = static_cast<float>(size.width) / m_windowWidth;
     m_aspectMatrix[1][1] = static_cast<float>(size.height) / m_windowHeight;
 }
@@ -61,19 +61,19 @@ glm::mat3 Sprite::getResultMatrix() const noexcept {
     return resultMatrix;
 }
 
-Sprite::Position Sprite::getPosition() const noexcept {
+Position Sprite::getPosition() const noexcept {
     auto resultVec{ m_moveMatrix * glm::vec3(m_position.x, m_position.y, 1.0) };
     float x = resultVec.x * (m_windowWidth / 2.0f);
     float y = resultVec.y * (m_windowHeight / 2.0f);
     return { x, y };
 }
 
-void Sprite::setPosition(Sprite::Position position) {
+void Sprite::setPosition(Position position) {
     m_moveMatrix[2][0] = position.x / (m_windowWidth / 2.0f);
     m_moveMatrix[2][1] = position.y / (m_windowHeight / 2.0f);
 }
 
-Sprite::Size Sprite::getSize() const noexcept {
+Size Sprite::getSize() const noexcept {
     return { m_size.width * m_scaleMatrix[0][0] * m_aspectMatrix[0][0],
              m_size.height * m_scaleMatrix[0][0] * m_aspectMatrix[0][0] };
 }
@@ -87,14 +87,14 @@ void Sprite::setScale(float scale) {
 float Sprite::getScale() const noexcept { return m_scale; }
 
 void Sprite::setRotate(float angle) {
-    m_rotationAngle = angle * std::numbers::pi / 180;
-    m_rotationMatrix[0][0] = std::cos(m_rotationAngle);
-    m_rotationMatrix[0][1] = std::sin(m_rotationAngle);
-    m_rotationMatrix[1][0] = -std::sin(m_rotationAngle);
-    m_rotationMatrix[1][1] = std::cos(m_rotationAngle);
+    m_rotationAngle = angle;
+    m_rotationMatrix[0][0] = std::cos(m_rotationAngle.getInRadians());
+    m_rotationMatrix[0][1] = std::sin(m_rotationAngle.getInRadians());
+    m_rotationMatrix[1][0] = -std::sin(m_rotationAngle.getInRadians());
+    m_rotationMatrix[1][1] = std::cos(m_rotationAngle.getInRadians());
 }
 
-float Sprite::getRotate() const noexcept { return m_rotationAngle * 180 / std::numbers::pi; }
+Angle Sprite::getRotate() const noexcept { return m_rotationAngle; }
 
 const std::vector<Vertex2>& Sprite::getVertices() const noexcept { return m_vertices; }
 
@@ -107,36 +107,12 @@ void Sprite::updateWindowSize() {
     m_windowHeight = getEngineInstance()->getWindowSize().height;
 }
 
-struct LineSegment
-{
-    float start{};
-    float end{};
-};
-
-bool intersect(LineSegment l1, LineSegment l2) {
-    float left{ std::max(l1.start, l2.start) };
-    float right{ std::min(l1.end, l2.end) };
-
-    if (right < left) return false;
-
-    return true;
+Rectangle Sprite::getRectangle() const noexcept {
+    return Rectangle{ .xy = { getPosition().x - getSize().width / 2.0f,
+                              getPosition().y - getSize().height / 2.0f },
+                      .wh = { getSize() } };
 }
 
-bool intersect(const Sprite& s1, const Sprite& s2) {
-    float leftS1x{ s1.getPosition().x - s1.getSize().width / 2.0f };
-    float rightS1x{ s1.getPosition().x + s1.getSize().width / 2.0f };
-    float lowS1y{ s1.getPosition().y - s1.getSize().height / 2.0f };
-    float upS1y{ s1.getPosition().y + s1.getSize().height / 2.0f };
-
-    float leftS2x{ s2.getPosition().x - s2.getSize().width / 2.0f };
-    float rightS2x{ s2.getPosition().x + s2.getSize().width / 2.0f };
-    float lowS2y{ s2.getPosition().y - s2.getSize().height / 2.0f };
-    float upS2y{ s2.getPosition().y + s2.getSize().height / 2.0f };
-
-    auto px{ intersect({ leftS1x, rightS1x }, { leftS2x, rightS2x }) };
-    auto py{ intersect({ lowS1y, upS1y }, { lowS2y, upS2y }) };
-
-    if (!px || !py) return false;
-
-    return true;
+std::optional<Rectangle> intersect(const Sprite& s1, const Sprite& s2) {
+    return intersect(s1.getRectangle(), s2.getRectangle());
 }

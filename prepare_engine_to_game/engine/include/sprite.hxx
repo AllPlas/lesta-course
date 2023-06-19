@@ -1,7 +1,3 @@
-//
-// Created by Алексей Крукович on 11.06.23.
-//
-
 #ifndef VERTEX_MORPHING_SPRITE_HXX
 #define VERTEX_MORPHING_SPRITE_HXX
 #include <glm/glm.hpp>
@@ -10,28 +6,16 @@
 #include <vector>
 
 #include "buffer.hxx"
+#include "structures.hxx"
 #include "texture.hxx"
 
 class Sprite final
 {
-public:
-    struct Position
-    {
-        float x{};
-        float y{};
-    };
-
-    struct Size
-    {
-        float width{};
-        float height{};
-    };
-
 private:
     Position m_position{};
     Size m_size{};
     float m_scale{ 1.0f };
-    float m_rotationAngle{ 0.0f };
+    Angle m_rotationAngle{};
 
     Texture m_texture{};
 
@@ -58,7 +42,7 @@ public:
     [[nodiscard]] float getScale() const noexcept;
 
     void setRotate(float angle);
-    [[nodiscard]] float getRotate() const noexcept;
+    [[nodiscard]] Angle getRotate() const noexcept;
 
     void checkAspect(Size size);
     void updateWindowSize();
@@ -67,11 +51,9 @@ public:
     [[nodiscard]] const std::vector<uint16_t>& getIndices() const noexcept;
     [[nodiscard]] const Texture& getTexture() const noexcept;
     [[nodiscard]] glm::mat3 getResultMatrix() const noexcept;
-
-
-    friend bool intersect(const Sprite& s1, const Sprite& s2);
+    [[nodiscard]] Rectangle getRectangle() const noexcept;
 };
 
-bool intersect(const Sprite& s1, const Sprite& s2);
+std::optional<Rectangle> intersect(const Sprite& s1, const Sprite& s2);
 
 #endif // VERTEX_MORPHING_SPRITE_HXX
