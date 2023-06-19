@@ -74,6 +74,14 @@ void VertexBuffer<V>::addData(const std::vector<V>& vertices) {
 }
 
 template <typename V>
+void VertexBuffer<V>::clear() {
+    m_vertices.clear();
+
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+    openGLCheck();
+}
+
+template <typename V>
 void VertexBuffer<V>::bind() const {
     glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
     openGLCheck();
@@ -138,6 +146,14 @@ template <typename T>
 void IndexBuffer<T>::addData(const std::vector<T>& indices) {
     m_indices.insert(m_indices.end(), indices.begin(), indices.end());
     updateData();
+}
+
+template <typename T>
+void IndexBuffer<T>::clear() {
+    m_indices.clear();
+
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+    openGLCheck();
 }
 
 template <typename T>

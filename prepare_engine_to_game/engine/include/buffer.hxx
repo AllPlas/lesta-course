@@ -55,6 +55,7 @@ public:
     void addData(std::vector<V>&& vertices);
     void addData(const std::vector<V>& vertices);
 
+    void clear();
     void bind() const;
     [[nodiscard]] std::size_t size() const noexcept;
 
@@ -83,6 +84,7 @@ public:
     void addData(std::vector<T>&& indices);
     void addData(const std::vector<T>& indices);
 
+    void clear();
     void bind() const;
     [[nodiscard]] std::size_t size() const noexcept;
 
