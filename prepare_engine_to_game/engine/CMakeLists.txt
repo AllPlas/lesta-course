@@ -27,7 +27,8 @@ set(Sources
         src/imgui_impl_opengl3.cxx
         src/imgui_impl_opengl3.hxx
         src/sprite.cxx
-        src/view.cxx)
+        src/view.cxx
+        src/structures.cxx)
 
 if (APPLE)
     add_library(engine_lib SHARED ${Sources})
