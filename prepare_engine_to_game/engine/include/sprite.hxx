@@ -14,7 +14,7 @@ class Sprite final
 private:
     Position m_position{};
     Size m_size{};
-    float m_scale{ 1.0f };
+    Scale m_scale{};
     Angle m_rotationAngle{};
 
     Texture m_texture{};
@@ -38,8 +38,8 @@ public:
 
     [[nodiscard]] Size getSize() const noexcept;
 
-    void setScale(float scale);
-    [[nodiscard]] float getScale() const noexcept;
+    void setScale(Scale scale);
+    [[nodiscard]] Scale getScale() const noexcept;
 
     void setRotate(float angle);
     [[nodiscard]] Angle getRotate() const noexcept;

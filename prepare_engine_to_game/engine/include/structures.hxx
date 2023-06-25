@@ -17,6 +17,12 @@ struct Size
     float height{};
 };
 
+struct Scale
+{
+    float x{ 1.0f };
+    float y{ 1.0f };
+};
+
 class Angle
 {
 private:

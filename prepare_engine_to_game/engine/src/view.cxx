@@ -1,5 +1,7 @@
 #include "view.hxx"
 
+#include "engine.hxx"
+
 glm::mat3 View::getViewMatrix() const {
     glm::mat3 view{ 1.0f };
     view[2][0] = -m_position.x * m_scale;
@@ -9,6 +11,9 @@ glm::mat3 View::getViewMatrix() const {
     return view;
 }
 
-void View::setPosition(Position position) { m_position = position; }
+void View::setPosition(Position position) {
+    m_position = { position.x /(getEngineInstance()->getWindowSize().width / 2.0f),
+                   position.y / (getEngineInstance()->getWindowSize().height / 2.0f) };
+}
 
 void View::setScale(float scale) { m_scale = scale; }

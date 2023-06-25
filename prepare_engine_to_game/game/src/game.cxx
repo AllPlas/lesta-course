@@ -5,27 +5,31 @@
 #include <ranges>
 #include <stdexcept>
 
+#include "island.hxx"
+#include "ship.hxx"
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "NullDereference"
 using namespace std::literals;
 
 class PirateGame : public IGame
 {
 private:
-    Sprite* sprite{};
-    Sprite* crate{};
+    Ship* ship{};
+    Island* island{};
+
+    Sprite* secShipForTest{};
+    Sprite* water{};
     View m_view{};
+    float m_scale{ 1.0f };
 
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
 
     int m_framerate{ 150 };
-    std::vector<Sprite::Position> m_cratesPositions{};
+    std::vector<Position> m_waterPositions{};
 
-    float acceleration = 20.f; // Ускорение объекта
-    float deceleration = 2 * acceleration;
-    float maxSpeed = 100.0f;   // Максимальная скорость объекта
-    float currentSpeed = 0.0f; // Текущая скорость объекта
-
-    bool m_isMove{ false };
+    bool m_is_enable_intersect_check{ false };
     bool is_binding_key = false;
     Event::Keyboard::Key* binding_key = nullptr;
     ImGuiKey m_key{};
@@ -41,8 +45,10 @@ private:
 
 public:
     ~PirateGame() noexcept override {
-        delete sprite;
-        delete crate;
+        delete ship;
+        delete secShipForTest;
+        delete water;
+        delete island;
     }
 
     void initialize() override {
@@ -51,109 +57,151 @@ public:
     "window_name": "Pirate Game",
     "window_width": 800,
     "window_height": 600,
-    "is_window_resizable": false
+    "is_window_resizable": true
 }
 )");
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
-        sprite =
+        ship = new Ship{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/ship.png",
+                         { 66, 113 } };
+
+        secShipForTest =
             new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/ship.png",
                         { 84, 94 } };
-        crate =
+        water =
             new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/water.png",
                         { 100, 100 } };
 
-        float screenCenterX = 800.0f / 2.0f;
-        float screenCenterY = 600.0f / 2.0f;
-        float spriteSize = 100.0f;
-        float xOffset = -((800.0f / 2.0f) - (spriteSize / 2.0f));
-        float yOffset = -((600.0f / 2.0f) - (spriteSize / 2.0f));
-
-        for (std::size_t i = 0; i < 800 / 100; ++i) {
-            for (std::size_t j = 0; j < 600 / 100; ++j) {
-                float xPos = xOffset + (i * spriteSize);
-                float yPos = yOffset + (j * spriteSize);
-                m_cratesPositions.push_back({ xPos, yPos });
-            }
-        }
+        island =
+            new Island{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/sand.png",
+                        { 50, 50 },
+                        { .xy = { 0, 0 }, .wh = { 500, 500 } },
+                        { { "0000000000" },
+                          { "0000000000" },
+                          { "0000000000" },
+                          { "0000##0000" },
+                          { "0000##0000" },
+                          { "0000##0000" },
+                          { "0000##0000" },
+                          { "0000##0000" },
+                          { "0000##0000" },
+                          { "00######00" } } };
     }
 
     void onEvent(const Event& event) override {
-        if (event.type == Event::Type::key_down) {
-            if (event.keyboard.key == Event::Keyboard::Key::l_control)
-                m_isDebugMenuOn = !m_isDebugMenuOn;
-
-            if (event.keyboard.key == Config::move_key) { m_isMove = true; }
+        switch (event.type) {
+        case Event::Type::key_down:
+            if (event.keyboard.key == Config::move_key) {
+                ship->move();
+                break;
+            }
 
             if (event.keyboard.key == Config::rotate_left_key) {
-                sprite->setRotate(sprite->getRotate() + 1);
-                if (sprite->getRotate() > 360) sprite->setRotate(sprite->getRotate() - 360);
+                ship->rotateLeft();
+                break;
             }
 
             if (event.keyboard.key == Config::rotate_right_key) {
-                sprite->setRotate(sprite->getRotate() - 1);
-                if (sprite->getRotate() < 0) sprite->setRotate(sprite->getRotate() + 360);
+                ship->rotateRight();
+                break;
             }
 
-            if (event.keyboard.key == Event::Keyboard::Key::l_shift)
-                sprite->setScale(sprite->getScale() == 0.5f ? 1.0f : 0.5f);
-        }
+            if (event.keyboard.key == Event::Keyboard::Key::l_control) {
+                m_isDebugMenuOn = !m_isDebugMenuOn;
+                break;
+            }
 
-        if (event.type == Event::Type::key_up) {
-            if (event.keyboard.key == Config::move_key) { m_isMove = false; }
+            break;
+        case Event::Type::key_up:
+            if (event.keyboard.key == Config::move_key) {
+                ship->stopMove();
+                break;
+            }
+
+            if (event.keyboard.key == Config::rotate_left_key) {
+                ship->stopRotateLeft();
+                break;
+            }
+
+            if (event.keyboard.key == Config::rotate_right_key) {
+                ship->stopRotateRight();
+                break;
+            }
+
+            break;
+
+        default:
+            break;
         }
     }
 
     void render() override {
-        getEngineInstance()->render(*sprite, m_view);
-        std::ranges::for_each(m_cratesPositions, [&](const auto& pos) {
-            crate->setPosition(pos);
-            getEngineInstance()->render(*crate, m_view);
+        getEngineInstance()->render(ship->getSprite(), m_view);
+        // getEngineInstance()->render(*secShipForTest, m_view);
+
+        std::ranges::for_each(island->getPositions(), [&](const auto& pos) {
+            if (std::abs(pos.x - ship->getSprite().getPosition().x) <= 500 / m_scale &&
+                std::abs(pos.y - ship->getSprite().getPosition().y) <= 400 / m_scale) {
+                island->getSprite().setPosition(pos);
+                getEngineInstance()->render(island->getSprite(), m_view);
+            }
+        });
+
+        std::ranges::for_each(m_waterPositions, [&](const auto& pos) {
+            if (std::abs(pos.x - ship->getSprite().getPosition().x) <= 500 / m_scale &&
+                std::abs(pos.y - ship->getSprite().getPosition().y) <= 400 / m_scale) {
+                water->setPosition(pos);
+                getEngineInstance()->render(*water, m_view);
+            }
         });
     }
 
     void update() override {
         static auto time{ std::chrono::steady_clock::now() };
-        float timeElapsed =
-            std::chrono::duration<float, std::ratio<1>>((std::chrono::steady_clock::now() - time))
-                .count();
+        std::chrono::milliseconds timeElapsed{
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
+                                                                  time)
+        };
+        ship->update(timeElapsed);
+        water->updateWindowSize();
+        water->checkAspect({ 800, 600 });
+
+        float spriteSize = 100.0f;
+        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
+        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
+        m_waterPositions.clear();
+        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
+            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
+                float xPos = xOffset + (i * spriteSize);
+                float yPos = yOffset + (j * spriteSize);
+                m_waterPositions.push_back({ xPos, yPos });
+            }
+        }
+
+        //      water->setScale({ 800.f / getEngineInstance()->getWindowSize().width,
+        //                       600.f / getEngineInstance()->getWindowSize().height });
+        //  water->setScale({ 1.0f, 600.f / getEngineInstance()->getWindowSize().height });
+
         time = std::chrono::steady_clock::now();
 
-        if (m_isMove) {
-            currentSpeed += acceleration * timeElapsed;
-            if (currentSpeed > maxSpeed) { currentSpeed = maxSpeed; }
-        }
-        else {
-            currentSpeed -= deceleration * timeElapsed;
-            if (currentSpeed < 0) currentSpeed = 0;
-        }
-        float deltaX = 0.0f;
-        float deltaY = currentSpeed * timeElapsed;
+        auto lastPost{ ship->getSprite().getPosition() };
+        m_view.setPosition(ship->getSprite().getPosition());
+        m_view.setScale(m_scale);
 
-        // Предполагая, что angle - угол в градусах
-        float angleInRadians = sprite->getRotate() * (std::numbers::pi / 180.0);
+        auto is{ intersect(ship->getSprite(), *secShipForTest) };
+        //    if (is && m_is_enable_intersect_check) { sprite->setPosition(lastPost); }
 
-        // Вычисление новых координат
-        float newX = sprite->getPosition().x + deltaX * std::cos(angleInRadians) -
-                     deltaY * std::sin(angleInRadians);
-        float newY = sprite->getPosition().y + deltaX * std::sin(angleInRadians) +
-                     deltaY * std::cos(angleInRadians);
-
-        sprite->setPosition({ newX, newY });
-        m_view.setPosition(sprite->getPosition().x / 400, sprite->getPosition().y / 300);
-        m_view.setScale(0.5);
-
-        //  sprite.updateWindowSize();
-        //    crate.updateWindowSize();
+        // sprite.updateWindowSize();
+        //    water.updateWindowSize();
         // sprite.checkAspect({ 800, 600 });
-        //    crate.checkAspect({ 800, 600 });
+        //    water.checkAspect({ 800, 600 });
         // sprite.setPosition({ 0.2, 0.2 });
 
         if (m_isDebugMenuOn) {
             ImGui::Begin("Debug Menu");
             ImGui::Text("FPS = %.1f ", ImGui::GetIO().Framerate);
 
-            ImGui::SliderInt("FPS", &m_framerate, 60, 500);
+            ImGui::SliderInt("FPS", &m_framerate, 60, 300);
             if (ImGui::Button("Apply FPS")) { getEngineInstance()->setFramerate(m_framerate); }
 
             if (ImGui::Button((getEngineInstance()->getVSync() ? "Disable"s : "Enable"s + " VSync")
@@ -163,12 +211,22 @@ public:
 
             ImGui::Checkbox("Debug Ship info", &m_debugTankInfo);
             if (m_debugTankInfo) {
-                ImGui::Text("pos x: %.1f\npos y: %.1f\nangle: %.1f\nspeed: %.1f",
-                            sprite->getPosition().x,
-                            sprite->getPosition().y,
-                            sprite->getRotate(),
-                            currentSpeed);
+                ImGui::Checkbox("Intersect", &m_is_enable_intersect_check);
+
+                ImGui::Text("pos x: %.1f\npos y: %.1f\nangle: %.1f\nspeed: %.1f\nintersect: "
+                            "%d\nwidth %.1f\nheight: %.1f\nwindowW %d\nwindowH %d",
+                            ship->getSprite().getPosition().x,
+                            ship->getSprite().getPosition().y,
+                            ship->getSprite().getRotate().getInDegrees(),
+                            ship->getMoveSpeed(),
+                            is.has_value(),
+                            ship->getSprite().getSize().width,
+                            ship->getSprite().getSize().height,
+                            getEngineInstance()->getWindowSize().width,
+                            getEngineInstance()->getWindowSize().height);
             }
+
+            ImGui::SliderFloat("camera height", &m_scale, 0.1f, 10.f);
 
             ImGui::Text("Move key: %s", ImGui::GetKeyName(m_key));
             auto it = ImGui::GetKeyIndex(ImGuiKey_D);
@@ -205,3 +263,4 @@ void destroyGame(IGame* game) {
     if (game == nullptr) throw std::runtime_error{ "Error : destroyGame : game is nullptr"s };
     delete game;
 }
+#pragma clang diagnostic pop

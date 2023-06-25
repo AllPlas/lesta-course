@@ -16,8 +16,8 @@ Sprite::Sprite(const fs::path& texturePath, Size size)
     m_scaleMatrix[1][1] = 1.0f;
     m_scaleMatrix[2][2] = 1.0f;
 
-    m_aspectMatrix[0][0] = 1;
-    m_aspectMatrix[1][1] = 1;
+    m_aspectMatrix[0][0] = 1.0f;
+    m_aspectMatrix[1][1] = 1.0f;
     m_aspectMatrix[2][2] = 1.0f;
 
     m_rotationMatrix[0][0] = 1.0f;
@@ -52,12 +52,19 @@ Sprite::Sprite(const fs::path& texturePath, Size size)
 }
 
 void Sprite::checkAspect(Size size) {
-    m_aspectMatrix[0][0] = static_cast<float>(size.width) / m_windowWidth;
-    m_aspectMatrix[1][1] = static_cast<float>(size.height) / m_windowHeight;
+    float originalRatio{ size.width / size.height };
+    float currentRatio{ static_cast<float>(m_windowWidth) / m_windowHeight };
+    m_aspectMatrix[1][1] = currentRatio / originalRatio;
+    m_aspectMatrix[0][0] = 1.0f;
+
+    // m_aspectMatrix[1][1] = (static_cast<float>(m_windowWidth) / m_windowHeight);
 }
 
 glm::mat3 Sprite::getResultMatrix() const noexcept {
-    auto resultMatrix{ m_moveMatrix * m_scaleMatrix * m_aspectMatrix * m_rotationMatrix };
+    auto mat{ m_scaleMatrix };
+    mat[1][1] *= m_aspectMatrix[1][1];
+    mat[0][0] *= m_aspectMatrix[0][0];
+    auto resultMatrix{ m_moveMatrix * mat * m_rotationMatrix };
     return resultMatrix;
 }
 
@@ -65,6 +72,7 @@ Position Sprite::getPosition() const noexcept {
     auto resultVec{ m_moveMatrix * glm::vec3(m_position.x, m_position.y, 1.0) };
     float x = resultVec.x * (m_windowWidth / 2.0f);
     float y = resultVec.y * (m_windowHeight / 2.0f);
+
     return { x, y };
 }
 
@@ -75,16 +83,16 @@ void Sprite::setPosition(Position position) {
 
 Size Sprite::getSize() const noexcept {
     return { m_size.width * m_scaleMatrix[0][0] * m_aspectMatrix[0][0],
-             m_size.height * m_scaleMatrix[0][0] * m_aspectMatrix[0][0] };
+             m_size.height * m_scaleMatrix[1][1] * m_aspectMatrix[1][1] };
 }
 
-void Sprite::setScale(float scale) {
+void Sprite::setScale(Scale scale) {
     m_scale = scale;
-    m_scaleMatrix[0][0] = scale;
-    m_scaleMatrix[1][1] = scale;
+    m_scaleMatrix[0][0] = scale.x;
+    m_scaleMatrix[1][1] = scale.y;
 }
 
-float Sprite::getScale() const noexcept { return m_scale; }
+Scale Sprite::getScale() const noexcept { return m_scale; }
 
 void Sprite::setRotate(float angle) {
     m_rotationAngle = angle;
@@ -92,6 +100,7 @@ void Sprite::setRotate(float angle) {
     m_rotationMatrix[0][1] = std::sin(m_rotationAngle.getInRadians());
     m_rotationMatrix[1][0] = -std::sin(m_rotationAngle.getInRadians());
     m_rotationMatrix[1][1] = std::cos(m_rotationAngle.getInRadians());
+
 }
 
 Angle Sprite::getRotate() const noexcept { return m_rotationAngle; }
