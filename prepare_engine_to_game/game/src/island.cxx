@@ -19,7 +19,7 @@ Island::Island(const fs::path& textureFilepath,
 
     for (std::size_t h{}; h < m_pattern.size(); ++h)
         for (std::size_t w{}; w < m_pattern.size(); ++w) {
-            if (m_pattern[h][w] == '#')
+            if (m_pattern[h][w] != ' ')
                 m_positions.push_back({ m_rectangle.xy.x + m_sprite.getSize().width * w,
                                         m_rectangle.xy.y + m_sprite.getSize().height * h });
         }
