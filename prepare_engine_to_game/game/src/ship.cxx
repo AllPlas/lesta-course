@@ -17,16 +17,17 @@ void Ship::stopRotateLeft() { m_isRotateLeft = false; }
 
 void Ship::stopRotateRight() { m_isRotateRight = false; }
 
-void Ship::update(std::chrono::milliseconds timeElapsed) {
+void Ship::update(std::chrono::microseconds timeElapsed) {
 
     m_sprite.updateWindowSize();
     m_sprite.checkAspect({ 800, 600 });
 
-    m_sprite.setScale({ std::sqrt(600.f / getEngineInstance()->getWindowSize().height * 800.f /
-                                  getEngineInstance()->getWindowSize().width),
-                        std::sqrt(600.f / getEngineInstance()->getWindowSize().height * 800.f /
-                                  getEngineInstance()->getWindowSize().width) });
-    float timeElapsedInSec{ static_cast<float>(timeElapsed.count()) / 1000 };
+    //    m_sprite.setScale({ std::sqrt(600.f / getEngineInstance()->getWindowSize().height * 800.f
+    //    /
+    //                                 getEngineInstance()->getWindowSize().width),
+    //                      std::sqrt(600.f / getEngineInstance()->getWindowSize().height * 800.f /
+    //                               getEngineInstance()->getWindowSize().width) });
+    float timeElapsedInSec{ static_cast<float>(timeElapsed.count()) / 1000000.0f };
 
     if (m_isMove) {
         m_currentMoveSpeed += m_config.moveAcceleration * timeElapsedInSec;

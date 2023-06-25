@@ -12,7 +12,7 @@ glm::mat3 View::getViewMatrix() const {
 }
 
 void View::setPosition(Position position) {
-    m_position = { position.x /(getEngineInstance()->getWindowSize().width / 2.0f),
+    m_position = { position.x / (getEngineInstance()->getWindowSize().width / 2.0f),
                    position.y / (getEngineInstance()->getWindowSize().height / 2.0f) };
 }
 

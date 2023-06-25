@@ -45,7 +45,7 @@ public:
 
     Config& config() noexcept;
 
-    void update(std::chrono::milliseconds timeElapsed);
+    void update(std::chrono::microseconds timeElapsed);
 
     [[nodiscard]] const Sprite& getSprite() const noexcept;
     [[nodiscard]] float getMoveSpeed() const noexcept;

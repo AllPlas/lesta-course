@@ -52,12 +52,8 @@ Sprite::Sprite(const fs::path& texturePath, Size size)
 }
 
 void Sprite::checkAspect(Size size) {
-    float originalRatio{ size.width / size.height };
-    float currentRatio{ static_cast<float>(m_windowWidth) / m_windowHeight };
-    m_aspectMatrix[1][1] = currentRatio / originalRatio;
-    m_aspectMatrix[0][0] = 1.0f;
-
-    // m_aspectMatrix[1][1] = (static_cast<float>(m_windowWidth) / m_windowHeight);
+    m_aspectMatrix[0][0] = size.width / getEngineInstance()->getWindowSize().width;
+    m_aspectMatrix[1][1] = size.height / getEngineInstance()->getWindowSize().height;
 }
 
 glm::mat3 Sprite::getResultMatrix() const noexcept {
@@ -70,15 +66,15 @@ glm::mat3 Sprite::getResultMatrix() const noexcept {
 
 Position Sprite::getPosition() const noexcept {
     auto resultVec{ m_moveMatrix * glm::vec3(m_position.x, m_position.y, 1.0) };
-    float x = resultVec.x * (m_windowWidth / 2.0f);
-    float y = resultVec.y * (m_windowHeight / 2.0f);
+    float x = resultVec.x * (getEngineInstance()->getWindowSize().width / 2.0f);
+    float y = resultVec.y * (getEngineInstance()->getWindowSize().height / 2.0f);
 
     return { x, y };
 }
 
 void Sprite::setPosition(Position position) {
-    m_moveMatrix[2][0] = position.x / (m_windowWidth / 2.0f);
-    m_moveMatrix[2][1] = position.y / (m_windowHeight / 2.0f);
+    m_moveMatrix[2][0] = position.x / (getEngineInstance()->getWindowSize().width / 2.0f);
+    m_moveMatrix[2][1] = position.y / (getEngineInstance()->getWindowSize().height / 2.0f);
 }
 
 Size Sprite::getSize() const noexcept {
@@ -101,6 +97,9 @@ void Sprite::setRotate(float angle) {
     m_rotationMatrix[1][0] = -std::sin(m_rotationAngle.getInRadians());
     m_rotationMatrix[1][1] = std::cos(m_rotationAngle.getInRadians());
 
+    auto aspectWH{ static_cast<float>(800) / 600.f };
+    m_aspectMatrix[1][1] *= 1 + std::abs((aspectWH - 1) * std::sin(m_rotationAngle.getInRadians()));
+    m_aspectMatrix[0][0] /= 1 + std::abs((aspectWH - 1) * std::sin(m_rotationAngle.getInRadians()));
 }
 
 Angle Sprite::getRotate() const noexcept { return m_rotationAngle; }
