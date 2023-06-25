@@ -23,12 +23,12 @@ void Map::addIsland(Position position, const std::vector<std::string>& pattern) 
     Rectangle rectangle{ .xy = position,
                          .wh = { m_textureSize.width * static_cast<float>(pattern.at(0).size()),
                                  m_textureSize.height * static_cast<float>(pattern.size()) } };
-    Island island("data/assets/sand.png", m_textureSize, rectangle, pattern);
+    m_islands.emplace_back("data/assets/sand.png", m_textureSize, rectangle, pattern);
 
-    std::erase_if(m_waterPositions,
-                  [&](const Position& position) { return rectangle.contains(position); });
-
-    m_islands.push_back(std::move_if_noexcept(island));
+    for (const auto& pos : m_islands.back().getPositions()) {
+        auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos) };
+        if (found != m_waterPositions.end()) m_waterPositions.erase(found);
+    }
 }
 
 const std::vector<Position>& Map::getWaterPositions() const noexcept { return m_waterPositions; }
