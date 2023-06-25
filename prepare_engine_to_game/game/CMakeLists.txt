@@ -5,7 +5,12 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(game SHARED src/game.cxx)
+add_library(game SHARED
+        src/game.cxx
+        src/ship.cxx
+        src/ship.hxx
+        src/island.cxx
+        src/island.hxx)
 
 if (APPLE)
     target_link_libraries(game PRIVATE engine_lib)
