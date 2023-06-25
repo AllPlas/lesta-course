@@ -62,30 +62,36 @@ public:
 )");
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
-        ship = new Ship{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/ship.png",
-                         { 66, 113 } };
+        ship = new Ship{ "data/assets/ship.png", { 100, 100 } };
 
-        secShipForTest =
-            new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/ship.png",
-                        { 84, 94 } };
-        water =
-            new Sprite{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/water.png",
-                        { 100, 100 } };
+        secShipForTest = new Sprite{ "data/assets/ship.png", { 84, 94 } };
+        water = new Sprite{ "data/assets/water.png", { 100, 100 } };
 
-        island =
-            new Island{ "/Users/aleksey/lesta-course/prepare_engine_to_game/data/assets/sand.png",
-                        { 50, 50 },
-                        { .xy = { 0, 0 }, .wh = { 500, 500 } },
-                        { { "0000000000" },
-                          { "0000000000" },
-                          { "0000000000" },
-                          { "0000##0000" },
-                          { "0000##0000" },
-                          { "0000##0000" },
-                          { "0000##0000" },
-                          { "0000##0000" },
-                          { "0000##0000" },
-                          { "00######00" } } };
+        island = new Island{ "data/assets/sand.png",
+                             { 50, 50 },
+                             { .xy = { 0, 0 }, .wh = { 500, 500 } },
+                             { { "0000000000" },
+                               { "0000000000" },
+                               { "0000000000" },
+                               { "0000##0000" },
+                               { "0000##0000" },
+                               { "0000##0000" },
+                               { "0000##0000" },
+                               { "0000##0000" },
+                               { "0000##0000" },
+                               { "00######00" } } };
+
+        float spriteSize = 100.0f;
+        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
+        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
+        m_waterPositions.clear();
+        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
+            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
+                float xPos = xOffset + (i * spriteSize);
+                float yPos = yOffset + (j * spriteSize);
+                m_waterPositions.push_back({ xPos, yPos });
+            }
+        }
     }
 
     void onEvent(const Event& event) override {
@@ -140,16 +146,20 @@ public:
         // getEngineInstance()->render(*secShipForTest, m_view);
 
         std::ranges::for_each(island->getPositions(), [&](const auto& pos) {
-            if (std::abs(pos.x - ship->getSprite().getPosition().x) <= 500 / m_scale &&
-                std::abs(pos.y - ship->getSprite().getPosition().y) <= 400 / m_scale) {
+            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
+                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
+                std::abs(pos.y - ship->getSprite().getPosition().y) <=
+                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
                 island->getSprite().setPosition(pos);
                 getEngineInstance()->render(island->getSprite(), m_view);
             }
         });
 
         std::ranges::for_each(m_waterPositions, [&](const auto& pos) {
-            if (std::abs(pos.x - ship->getSprite().getPosition().x) <= 500 / m_scale &&
-                std::abs(pos.y - ship->getSprite().getPosition().y) <= 400 / m_scale) {
+            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
+                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
+                std::abs(pos.y - ship->getSprite().getPosition().y) <=
+                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
                 water->setPosition(pos);
                 getEngineInstance()->render(*water, m_view);
             }
@@ -158,31 +168,19 @@ public:
 
     void update() override {
         static auto time{ std::chrono::steady_clock::now() };
-        std::chrono::milliseconds timeElapsed{
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-                                                                  time)
+        auto now{ std::chrono::steady_clock::now() };
+        std::chrono::microseconds timeElapsed{
+            std::chrono::duration_cast<std::chrono::microseconds>(now - time)
         };
+        time = now;
         ship->update(timeElapsed);
+        island->update();
         water->updateWindowSize();
         water->checkAspect({ 800, 600 });
-
-        float spriteSize = 100.0f;
-        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
-        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
-        m_waterPositions.clear();
-        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
-            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
-                float xPos = xOffset + (i * spriteSize);
-                float yPos = yOffset + (j * spriteSize);
-                m_waterPositions.push_back({ xPos, yPos });
-            }
-        }
 
         //      water->setScale({ 800.f / getEngineInstance()->getWindowSize().width,
         //                       600.f / getEngineInstance()->getWindowSize().height });
         //  water->setScale({ 1.0f, 600.f / getEngineInstance()->getWindowSize().height });
-
-        time = std::chrono::steady_clock::now();
 
         auto lastPost{ ship->getSprite().getPosition() };
         m_view.setPosition(ship->getSprite().getPosition());

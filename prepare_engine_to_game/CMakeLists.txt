@@ -12,3 +12,5 @@ endif ()
 
 add_subdirectory(engine)
 add_subdirectory(game)
+
+file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR}/engine)

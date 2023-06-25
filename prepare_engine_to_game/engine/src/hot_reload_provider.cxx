@@ -82,8 +82,11 @@ void HotReloadProvider::configFileChanged() {
 }
 
 std::string_view HotReloadProvider::getPath(std::string_view name) const noexcept {
-    // string for windows
+#ifndef _WIN32
     return m_map.at(name.data()).path.c_str();
+#else
+    return m_map.at(name.data()).path.string().c_str();
+#endif
 }
 
 void HotReloadProvider::extractData() {
@@ -91,8 +94,9 @@ void HotReloadProvider::extractData() {
 
     for (const auto& [name, path] : value.as_object()) {
         fs::path fullPath{};
-        if (!path.as_string().starts_with('/')) fullPath += m_configPath.parent_path() / "";
-        fullPath += path.as_string();
+        if (!path.as_string().starts_with('/') || path.as_string()[1] != ':')
+            fullPath += m_configPath.parent_path() / "";
+        fullPath += path.as_string().c_str();
         m_map[name].path = fullPath;
     }
 }

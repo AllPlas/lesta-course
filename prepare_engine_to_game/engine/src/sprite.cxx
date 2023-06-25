@@ -52,8 +52,8 @@ Sprite::Sprite(const fs::path& texturePath, Size size)
 }
 
 void Sprite::checkAspect(Size size) {
-    m_aspectMatrix[0][0] = size.width / getEngineInstance()->getWindowSize().width;
-    m_aspectMatrix[1][1] = size.height / getEngineInstance()->getWindowSize().height;
+    m_aspectMatrix[0][0] = size.width / m_windowWidth;
+    m_aspectMatrix[1][1] = size.height / m_windowHeight;
 }
 
 glm::mat3 Sprite::getResultMatrix() const noexcept {

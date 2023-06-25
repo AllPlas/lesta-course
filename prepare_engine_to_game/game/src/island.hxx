@@ -25,6 +25,7 @@ public:
 
     [[nodiscard]] const std::vector<Position>& getPositions() const noexcept;
     Sprite& getSprite() noexcept;
+    void update();
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_ISLAND_HXX
