@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "island.hxx"
+#include "map.hxx"
 #include "ship.hxx"
 
 #pragma clang diagnostic push
@@ -17,6 +18,7 @@ class PirateGame : public IGame
 private:
     Ship* ship{};
     Island* island{};
+    Map* map{};
 
     Sprite* secShipForTest{};
     Sprite* water{};
@@ -47,6 +49,7 @@ public:
     ~PirateGame() noexcept override {
         delete ship;
         delete secShipForTest;
+        delete map;
         delete water;
         delete island;
     }
@@ -63,6 +66,7 @@ public:
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
         ship = new Ship{ "data/assets/ship.png", { 100, 100 } };
+        map = new Map{ "data/assets/water.png", "data/assets/air.png", { 50, 50 }, { 4000, 4000 } };
 
         secShipForTest = new Sprite{ "data/assets/ship.png", { 84, 94 } };
         water = new Sprite{ "data/assets/water.png", { 100, 100 } };
@@ -81,17 +85,29 @@ public:
                                { "0000##0000" },
                                { "00######00" } } };
 
-        float spriteSize = 100.0f;
-        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
-        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
-        m_waterPositions.clear();
-        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
-            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
-                float xPos = xOffset + (i * spriteSize);
-                float yPos = yOffset + (j * spriteSize);
-                m_waterPositions.push_back({ xPos, yPos });
-            }
-        }
+        map->addIsland({ 400, 400 },
+                       { { "0000000000" },
+                         { "0000000000" },
+                         { "0000000000" },
+                         { "0000##0000" },
+                         { "0000##0000" },
+                         { "0000##0000" },
+                         { "0000##0000" },
+                         { "0000##0000" },
+                         { "0000##0000" },
+                         { "00######00" } });
+
+        //        float spriteSize = 100.0f;
+        //        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
+        //        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
+        //        m_waterPositions.clear();
+        //        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
+        //            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
+        //                float xPos = xOffset + (i * spriteSize);
+        //                float yPos = yOffset + (j * spriteSize);
+        //                m_waterPositions.push_back({ xPos, yPos });
+        //            }
+        //        }
     }
 
     void onEvent(const Event& event) override {
@@ -155,15 +171,36 @@ public:
             }
         });
 
-        std::ranges::for_each(m_waterPositions, [&](const auto& pos) {
+        std::ranges::for_each(map->getWaterPositions(), [&](const auto& pos) {
             if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
                     (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
                 std::abs(pos.y - ship->getSprite().getPosition().y) <=
                     (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
-                water->setPosition(pos);
-                getEngineInstance()->render(*water, m_view);
+                map->getWaterSprite().setPosition(pos);
+                getEngineInstance()->render(map->getWaterSprite(), m_view);
             }
         });
+
+        std::ranges::for_each(map->getIslandPositions(0), [&](const auto& pos) {
+            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
+                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
+                std::abs(pos.y - ship->getSprite().getPosition().y) <=
+                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
+                map->getIsland(0).getSprite().setPosition(pos);
+                getEngineInstance()->render(map->getIsland(0).getSprite(), m_view);
+            }
+        });
+
+        //        std::ranges::for_each(m_waterPositions, [&](const auto& pos) {
+        //            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
+        //                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
+        //                std::abs(pos.y - ship->getSprite().getPosition().y) <=
+        //                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale)
+        //                    {
+        //                water->setPosition(pos);
+        //                getEngineInstance()->render(*water, m_view);
+        //            }
+        //        });
     }
 
     void update() override {
@@ -175,6 +212,7 @@ public:
         time = now;
         ship->update(timeElapsed);
         island->update();
+        map->update();
         water->updateWindowSize();
         water->checkAspect({ 800, 600 });
 

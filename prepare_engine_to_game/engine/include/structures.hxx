@@ -49,6 +49,8 @@ struct Rectangle
 {
     Position xy{};
     Size wh{};
+
+   [[nodiscard]] bool contains(Position position) const noexcept;
 };
 
 std::optional<LineSegment> intersect(LineSegment l1, LineSegment l2);

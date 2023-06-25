@@ -31,6 +31,4 @@ Sprite& Island::getSprite() noexcept { return m_sprite; }
 void Island::update() {
     m_sprite.updateWindowSize();
     m_sprite.checkAspect({ 800, 600 });
-   // m_sprite.setScale();
-
 }

@@ -3,6 +3,11 @@
 float Angle::getInRadians() const noexcept { return m_angleInDegrees * std::numbers::pi / 180.0f; }
 float Angle::getInDegrees() const noexcept { return m_angleInDegrees; }
 
+bool Rectangle::contains(Position position) const noexcept {
+    return (position.x >= xy.x && position.x <= xy.x + wh.width && position.y >= xy.y &&
+            position.y <= xy.y + wh.height);
+}
+
 std::optional<LineSegment> intersect(LineSegment l1, LineSegment l2) {
     float left{ std::max(l1.start, l2.start) };
     float right{ std::min(l1.end, l2.end) };
