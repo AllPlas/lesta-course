@@ -27,7 +27,7 @@ Island::Island(Size size, Rectangle rectangle, const std::vector<std::string>& p
         }
 }
 
-void Island::update() {
+void Island::resizeUpdate() {
     for (auto& [_, sprite] : *s_islandTiles) {
         sprite.updateWindowSize();
         sprite.checkAspect({ 800, 600 });
@@ -59,4 +59,8 @@ void Island::setIslandTiles(std::unordered_map<std::string, Sprite>& islandTiles
 
 void Island::setIslandPattern(std::unordered_map<char, std::string>& pattern) {
     s_charToIslandString = &pattern;
+}
+
+const std::vector<std::pair<char, Position>>& Island::getPositions() const noexcept {
+    return m_positions;
 }

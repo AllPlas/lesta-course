@@ -26,8 +26,10 @@ public:
     static void setIslandTiles(std::unordered_map<std::string, Sprite>& islandTiles);
     static void setIslandPattern(std::unordered_map<char, std::string>& pattern);
 
-    void update();
+    void resizeUpdate();
     void render(const View& view);
+
+    [[nodiscard]] const std::vector<std::pair<char, Position>>& getPositions() const noexcept;
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_ISLAND_HXX
