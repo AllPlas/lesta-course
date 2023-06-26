@@ -1,5 +1,7 @@
 #include "map.hxx"
 
+#include "engine.hxx"
+
 Map::Map(const fs::path& waterTexturePath,
          const fs::path& airTexturePath,
          Size textureSize,
@@ -12,8 +14,8 @@ Map::Map(const fs::path& waterTexturePath,
     float yOffset = -((600 / 2.0f) - (m_textureSize.height / 2.0f));
     for (std::ptrdiff_t h{}; h < m_mapSize.height / m_textureSize.height; ++h) {
         for (std::ptrdiff_t w{}; w < m_mapSize.width / m_textureSize.width; ++w) {
-            float xPos = xOffset + (h * m_textureSize.width);
-            float yPos = yOffset + (w * m_textureSize.height);
+            float xPos = xOffset + (w * m_textureSize.width);
+            float yPos = yOffset + (h * m_textureSize.height);
             m_waterPositions.push_back({ xPos, yPos });
         }
     }
@@ -41,6 +43,36 @@ void Map::update() {
     m_waterSprite.checkAspect({ 800, 600 });
     m_airSprite.updateWindowSize();
     m_airSprite.checkAspect({ 800, 600 });
+}
+
+void Map::render(const View& view) {
+    for (auto& island : m_islands)
+        island.render(view);
+
+    auto shipPos{ view.getPosition() };
+
+    auto tileX{ static_cast<std::size_t>(shipPos.x) / m_textureSize.width + 8 };
+    auto tileY{ static_cast<std::size_t>(shipPos.y) / m_textureSize.height + 6 };
+
+    auto windowTilesX{ (getEngineInstance()->getWindowSize().width / 50) / 2 };
+    auto windowTilesY{ (getEngineInstance()->getWindowSize().height / 50) / 2 };
+
+    std::ptrdiff_t leftCornerX{ static_cast<std::ptrdiff_t>(tileX) - windowTilesX - 1 };
+    std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY) - windowTilesY - 1 };
+
+    for (std::ptrdiff_t i{ leftCornerY < 0 ? 0 : leftCornerY };
+         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 1) > 159
+                   ? 159
+                   : leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 1);
+         ++i)
+        for (std::ptrdiff_t j{ leftCornerX < 0 ? 0 : leftCornerX };
+             j <= (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) + 2 > 159
+                       ? 159
+                       : leftCornerX + (getEngineInstance()->getWindowSize().width / 50) + 2);
+             ++j) {
+            getWaterSprite().setPosition({ getWaterPositions().at(i * 160 + j) });
+            getEngineInstance()->render(getWaterSprite(), view);
+        }
 }
 
 Sprite& Map::getWaterSprite() noexcept { return m_waterSprite; }

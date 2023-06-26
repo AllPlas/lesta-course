@@ -11,7 +11,7 @@ struct Position
     float x{};
     float y{};
 
-    bool operator<=>(const Position& position) const = default;
+    auto operator<=>(const Position& position) const = default;
 };
 
 struct Size
@@ -19,7 +19,7 @@ struct Size
     float width{};
     float height{};
 
-    bool operator<=>(const Size& size) const = default;
+    auto operator<=>(const Size& size) const = default;
 };
 
 struct Scale
@@ -27,7 +27,7 @@ struct Scale
     float x{ 1.0f };
     float y{ 1.0f };
 
-    bool operator<=>(const Scale& scale) const = default;
+    auto operator<=>(const Scale& scale) const = default;
 };
 
 class Angle
@@ -44,7 +44,7 @@ public:
     [[nodiscard]] float getInRadians() const noexcept;
     [[nodiscard]] float getInDegrees() const noexcept;
 
-    bool operator<=>(const Angle& angle) const = default;
+    auto operator<=>(const Angle& angle) const = default;
 };
 
 struct LineSegment

@@ -16,4 +16,11 @@ void View::setPosition(Position position) {
                    position.y / (getEngineInstance()->getWindowSize().height / 2.0f) };
 }
 
+Position View::getPosition() const noexcept {
+    return { m_position.x * (getEngineInstance()->getWindowSize().width / 2.0f),
+             m_position.y * (getEngineInstance()->getWindowSize().height / 2.0f) };
+}
+
 void View::setScale(float scale) { m_scale = scale; }
+
+float View::getScale() const noexcept { return m_scale; }

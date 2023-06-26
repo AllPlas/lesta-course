@@ -198,24 +198,23 @@ public:
                          { "####SSRRB######" },
                          { "#####SSRRS#####" },
                          { "###############" } });
-        
-        map->addIsland({4000, 0}, {
-                                        {"###############"},
-                                         {"####SSRRS######"},
-                                         {"###SSBBRBBS####"},
-                                         {"####SRRRRBBB###"},
-                                         {"#####SS#SSSBBS#"},
-                                         {"##########BRBSS"},
-                                         {"##SSSS####SRRSS"},
-                                         {"##SBBRS##SSBBSS"},
-                                         {"#SSRBBS#SSBBRS#"},
-                                         {"##SBBRS#SBRBRR#"},
-                                         {"##SBBRS##BBBBS#"},
-                                         {"###BRBS###SSSS#"},
-                                         {"####SSS########"},
-                                         {"###############"},
-                                         {"###############"}
-                                    });
+
+        map->addIsland({ 4000, 0 },
+                       { { "###############" },
+                         { "####SSRRS######" },
+                         { "###SSBBRBBS####" },
+                         { "####SRRRRBBB###" },
+                         { "#####SS#SSSBBS#" },
+                         { "##########BRBSS" },
+                         { "##SSSS####SRRSS" },
+                         { "##SBBRS##SSBBSS" },
+                         { "#SSRBBS#SSBBRS#" },
+                         { "##SBBRS#SBRBRR#" },
+                         { "##SBBRS##BBBBS#" },
+                         { "###BRBS###SSSS#" },
+                         { "####SSS########" },
+                         { "###############" },
+                         { "###############" } });
 
         Size size{ 50, 50 };
         m_islandSprites.try_emplace("sand", "data/assets/sand.png", size);
@@ -297,23 +296,7 @@ public:
 
     void render() override {
         getEngineInstance()->render(ship->getSprite(), m_view);
-        map->getIsland(0).render(m_view);
-        map->getIsland(1).render(m_view);
-        map->getIsland(2).render(m_view);
-        map->getIsland(3).render(m_view);
-        map->getIsland(4).render(m_view);
-        map->getIsland(5).render(m_view);
-        map->getIsland(6).render(m_view);
-        map->getIsland(7).render(m_view);
-        std::ranges::for_each(map->getWaterPositions(), [&](const auto& pos) {
-            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
-                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
-                std::abs(pos.y - ship->getSprite().getPosition().y) <=
-                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
-                map->getWaterSprite().setPosition(pos);
-                getEngineInstance()->render(map->getWaterSprite(), m_view);
-            }
-        });
+        map->render(m_view);
     }
 
     void update() override {

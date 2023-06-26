@@ -13,8 +13,12 @@ private:
 
 public:
     [[nodiscard]] glm::mat3 getViewMatrix() const;
+
     void setPosition(Position position);
+    [[nodiscard]] Position getPosition() const noexcept;
+
     void setScale(float scale);
+    [[nodiscard]] float getScale() const noexcept;
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_VIEW_HXX

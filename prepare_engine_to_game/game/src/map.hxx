@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <sprite.hxx>
 #include <vector>
+#include <view.hxx>
 
 #include "island.hxx"
 
@@ -30,6 +31,7 @@ public:
     void addIsland(Position position, const std::vector<std::string>& pattern);
     [[nodiscard]] Island& getIsland(std::size_t id) noexcept;
     void update();
+    void render(const View& view);
 
     [[nodiscard]] const std::vector<Position>& getWaterPositions() const noexcept;
     [[nodiscard]] Sprite& getWaterSprite() noexcept;
