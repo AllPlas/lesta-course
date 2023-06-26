@@ -29,10 +29,15 @@ namespace fs = std::filesystem;
 namespace json = boost::json;
 
 static const std::unordered_map<Event::Type, std::string_view> s_eventTypeToStringView{
-    { Event::Type::key_down, "key_down" },      { Event::Type::key_up, "key_up" },
-    { Event::Type::mouse_down, "button_down" }, { Event::Type::mouse_up, "button_up" },
-    { Event::Type::mouse_wheel, "spin_wheel" }, { Event::Type::mouse_motion, "mouse_motion" },
-    { Event::Type::turn_off, "turn_off" },      { Event::Type::not_event, "" }
+    { Event::Type::key_down, "key_down" },
+    { Event::Type::key_up, "key_up" },
+    { Event::Type::mouse_down, "button_down" },
+    { Event::Type::mouse_up, "button_up" },
+    { Event::Type::mouse_wheel, "spin_wheel" },
+    { Event::Type::mouse_motion, "mouse_motion" },
+    { Event::Type::window_resized, "window_resized" },
+    { Event::Type::turn_off, "turn_off" },
+    { Event::Type::not_event, "" }
 };
 
 static const std::unordered_map<Event::Keyboard::Key, std::string_view> s_eventKeysToStringView{
@@ -486,6 +491,11 @@ public:
                     event = *e;
                     return true;
                 }
+            }
+
+            if (sdlEvent.type == SDL_EVENT_WINDOW_RESIZED) {
+                event.type = Event::Type::window_resized;
+                return true;
             }
         }
 

@@ -32,6 +32,7 @@ struct Event
         mouse_up,
         mouse_wheel,
         mouse_motion,
+        window_resized,
         turn_off,
 
         not_event,
