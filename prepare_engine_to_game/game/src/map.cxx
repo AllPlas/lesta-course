@@ -23,19 +23,15 @@ void Map::addIsland(Position position, const std::vector<std::string>& pattern) 
     Rectangle rectangle{ .xy = position,
                          .wh = { m_textureSize.width * static_cast<float>(pattern.at(0).size()),
                                  m_textureSize.height * static_cast<float>(pattern.size()) } };
-    m_islands.emplace_back("data/assets/sand.png", m_textureSize, rectangle, pattern);
+    m_islands.emplace_back(m_textureSize, rectangle, pattern);
 
-    for (const auto& pos : m_islands.back().getPositions()) {
-        auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos) };
-        if (found != m_waterPositions.end()) m_waterPositions.erase(found);
-    }
+    //    for (const auto& pos : m_islands.back().getPositions()) {
+    //        auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos) };
+    //        if (found != m_waterPositions.end()) m_waterPositions.erase(found);
+    //    }
 }
 
 const std::vector<Position>& Map::getWaterPositions() const noexcept { return m_waterPositions; }
-
-const std::vector<Position>& Map::getIslandPositions(std::size_t id) const noexcept {
-    return m_islands.at(id).getPositions();
-}
 
 void Map::update() {
     for (auto& island : m_islands)

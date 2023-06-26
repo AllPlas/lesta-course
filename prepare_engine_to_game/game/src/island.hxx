@@ -2,8 +2,8 @@
 #define ENGINE_PREPARE_TO_GAME_ISLAND_HXX
 
 #include <filesystem>
-#include <functional>
 #include <sprite.hxx>
+#include <unordered_map>
 #include <vector>
 #include <view.hxx>
 
@@ -12,20 +12,22 @@ namespace fs = std::filesystem;
 class Island final
 {
 private:
-    Sprite m_sprite;
+    Size m_size{};
     Rectangle m_rectangle{};
     std::vector<std::string> m_pattern{};
-    std::vector<Position> m_positions{};
+    std::vector<std::pair<char, Position>> m_positions{};
+
+    inline static std::unordered_map<std::string, Sprite>* s_islandTiles{};
+    inline static std::unordered_map<char, std::string>* s_charToIslandString{};
 
 public:
-    Island(const fs::path& textureFilepath,
-           Size size,
-           Rectangle rectangle,
-           const std::vector<std::string>& pattern);
+    Island(Size size, Rectangle rectangle, const std::vector<std::string>& pattern);
 
-    [[nodiscard]] const std::vector<Position>& getPositions() const noexcept;
-    Sprite& getSprite() noexcept;
+    static void setIslandTiles(std::unordered_map<std::string, Sprite>& islandTiles);
+    static void setIslandPattern(std::unordered_map<char, std::string>& pattern);
+
     void update();
+    void render(const View& view);
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_ISLAND_HXX

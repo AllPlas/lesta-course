@@ -32,7 +32,6 @@ public:
     void update();
 
     [[nodiscard]] const std::vector<Position>& getWaterPositions() const noexcept;
-    [[nodiscard]] const std::vector<Position>& getIslandPositions(std::size_t id) const noexcept;
     [[nodiscard]] Sprite& getWaterSprite() noexcept;
 };
 

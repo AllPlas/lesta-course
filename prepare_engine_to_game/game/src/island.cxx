@@ -1,12 +1,11 @@
 #include "island.hxx"
 
 #include <algorithm>
+#include <engine.hxx>
+#include <string>
 
-Island::Island(const fs::path& textureFilepath,
-               Size size,
-               Rectangle rectangle,
-               const std::vector<std::string>& pattern)
-    : m_sprite{ textureFilepath, size }, m_rectangle{ rectangle }, m_pattern{ pattern } {
+Island::Island(Size size, Rectangle rectangle, const std::vector<std::string>& pattern)
+    : m_size{ size }, m_rectangle{ rectangle }, m_pattern{ pattern } {
     int tilesW{ static_cast<int>(m_rectangle.wh.width / size.width) };
     int tilesH{ static_cast<int>(m_rectangle.wh.height / size.height) };
 
@@ -14,21 +13,40 @@ Island::Island(const fs::path& textureFilepath,
 
     if (tilesH != m_pattern.size())
         throw std::runtime_error{ "Error : Island() : tilesH != pattern.size()"s };
-    if (tilesW != m_pattern[0].size())
-        throw std::runtime_error{ "Error : Island() : tilesW != pattern[0].size()"s };
+
+    for (const auto& rows : m_pattern)
+        if (tilesW != rows.size())
+            throw std::runtime_error{ "Error : Island() : tilesW != rows.size()"s };
 
     for (std::size_t h{}; h < m_pattern.size(); ++h)
         for (std::size_t w{}; w < m_pattern.size(); ++w) {
-            if (m_pattern[h][w] != ' ')
-                m_positions.push_back({ m_rectangle.xy.x + m_sprite.getSize().width * w,
-                                        m_rectangle.xy.y + m_sprite.getSize().height * h });
+            if (m_pattern[h][w] != '#')
+                m_positions.push_back({ m_pattern[h][w],
+                                        { m_rectangle.xy.x + m_size.width * w,
+                                          m_rectangle.xy.y + m_size.height * h } });
         }
 }
 
-const std::vector<Position>& Island::getPositions() const noexcept { return m_positions; }
-Sprite& Island::getSprite() noexcept { return m_sprite; }
-
 void Island::update() {
-    m_sprite.updateWindowSize();
-    m_sprite.checkAspect({ 800, 600 });
+    for (auto& [_, sprite] : *s_islandTiles) {
+        sprite.updateWindowSize();
+        sprite.checkAspect({ 800, 600 });
+    }
+}
+
+void Island::render(const View& view) {
+    for (const auto& pos : m_positions) {
+        std::reference_wrapper<Sprite> sprite{ s_islandTiles->at(
+            s_charToIslandString->at(pos.first)) };
+        sprite.get().setPosition(pos.second);
+        getEngineInstance()->render(sprite, view);
+    }
+}
+
+void Island::setIslandTiles(std::unordered_map<std::string, Sprite>& islandTiles) {
+    s_islandTiles = &islandTiles;
+}
+
+void Island::setIslandPattern(std::unordered_map<char, std::string>& pattern) {
+    s_charToIslandString = &pattern;
 }

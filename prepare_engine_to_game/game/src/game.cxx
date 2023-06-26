@@ -2,7 +2,6 @@
 #include <array>
 #include <chrono>
 #include <engine.hxx>
-#include <ranges>
 #include <stdexcept>
 
 #include "island.hxx"
@@ -17,11 +16,11 @@ class PirateGame : public IGame
 {
 private:
     Ship* ship{};
-    Island* island{};
     Map* map{};
 
-    Sprite* secShipForTest{};
-    Sprite* water{};
+    std::unordered_map<std::string, Sprite> m_islandSprites{};
+    std::unordered_map<char, std::string> m_charToIslandString{};
+
     View m_view{};
     float m_scale{ 1.0f };
 
@@ -48,10 +47,7 @@ private:
 public:
     ~PirateGame() noexcept override {
         delete ship;
-        delete secShipForTest;
         delete map;
-        delete water;
-        delete island;
     }
 
     void initialize() override {
@@ -66,48 +62,176 @@ public:
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
         ship = new Ship{ "data/assets/ship.png", { 100, 100 } };
-        map = new Map{ "data/assets/water.png", "data/assets/air.png", { 50, 50 }, { 4000, 4000 } };
-
-        secShipForTest = new Sprite{ "data/assets/ship.png", { 84, 94 } };
-        water = new Sprite{ "data/assets/water.png", { 100, 100 } };
-
-        island = new Island{ "data/assets/sand.png",
-                             { 50, 50 },
-                             { .xy = { 0, 0 }, .wh = { 500, 500 } },
-                             { { "0000000000" },
-                               { "0000000000" },
-                               { "0000000000" },
-                               { "0000##0000" },
-                               { "0000##0000" },
-                               { "0000##0000" },
-                               { "0000##0000" },
-                               { "0000##0000" },
-                               { "0000##0000" },
-                               { "00######00" } } };
-
+        map = new Map{ "data/assets/water.png", "data/assets/air.png", { 50, 50 }, { 8000, 8000 } };
         map->addIsland({ 400, 400 },
-                       { { "0000000000" },
-                         { "0000000000" },
-                         { "0000000000" },
-                         { "0000##0000" },
-                         { "0000##0000" },
-                         { "0000##0000" },
-                         { "0000##0000" },
-                         { "0000##0000" },
-                         { "0000##0000" },
-                         { "00######00" } });
+                       { { "########SSSS###" },
+                         { "######SSBGGGS##" },
+                         { "##SSBBBGGGRGB##" },
+                         { "#SRBBRRGRRPGGS#" },
+                         { "##SBBGGGGRPPGS#" },
+                         { "###GPGBSSSGGBS#" },
+                         { "##SBB#####BRGS#" },
+                         { "##BBS#####BGGS#" },
+                         { "##BGG#####BGPS#" },
+                         { "#SBGGBB##SGRGS#" },
+                         { "#SGRGRB##SBGRS#" },
+                         { "##GGPGB##SBGS##" },
+                         { "##GGGGRS##SSS##" },
+                         { "##BBGBB########" },
+                         { "###SBS#########" } });
 
-        //        float spriteSize = 100.0f;
-        //        float xOffset = -((800 / 2.0f) - (spriteSize / 2.0f));
-        //        float yOffset = -((600 / 2.0f) - (spriteSize / 2.0f));
-        //        m_waterPositions.clear();
-        //        for (std::ptrdiff_t i = -2000 / 100; i < 2000 / 100; ++i) {
-        //            for (std::ptrdiff_t j = -2000 / 100; j < 2000 / 100; ++j) {
-        //                float xPos = xOffset + (i * spriteSize);
-        //                float yPos = yOffset + (j * spriteSize);
-        //                m_waterPositions.push_back({ xPos, yPos });
-        //            }
-        //        }
+        map->addIsland({ 1500, 0 },
+                       { { "###############" },
+                         { "#####S#########" },
+                         { "#####SS########" },
+                         { "#####RB##SS####" },
+                         { "#####SB##SB####" },
+                         { "#####SB##SBS###" },
+                         { "######S##SRS###" },
+                         { "#SS###S###SS#S#" },
+                         { "##SS#########S#" },
+                         { "##SS########SS#" },
+                         { "###SSS####SSSR#" },
+                         { "####SRSSSSBSS##" },
+                         { "####SBBRRBRS###" },
+                         { "######SRSS#####" },
+                         { "###############" } });
+
+        map->addIsland({ 0, 2000 },
+                       { { "###############" },
+                         { "###############" },
+                         { "###########SS##" },
+                         { "#SS#######SS###" },
+                         { "##B#####SBBB###" },
+                         { "##RS##SRBPB####" },
+                         { "##SGBSBBGG#####" },
+                         { "###GPGGPGB#####" },
+                         { "###SRGGGRR#####" },
+                         { "####GGPRGSS####" },
+                         { "####SS#RGPGS###" },
+                         { "########SGGS###" },
+                         { "#########RB####" },
+                         { "#########SS####" },
+                         { "###############" } });
+
+        map->addIsland({ 1600, 1500 },
+                       { { "###############" },
+                         { "#####SSSSSS####" },
+                         { "###SSBGBBRSS###" },
+                         { "###GGRPGGBBBS##" },
+                         { "#SGGGGGGGGPGSS#" },
+                         { "#SRGPGGGGGGGGS#" },
+                         { "##RGGBBRBGGPGS#" },
+                         { "##SGGGSSSSBBS##" },
+                         { "##SPPGS###SSS##" },
+                         { "##SBGGPS#######" },
+                         { "###SGGGS#######" },
+                         { "###SSGGG#######" },
+                         { "###SSBBBS######" },
+                         { "#####SBRBS#####" },
+                         { "#######SB######" } });
+
+        map->addIsland({ 2200, 700 },
+                       { { "#####SSSSS#####" },
+                         { "##SSBBGGGBSS###" },
+                         { "#SBBGPGGPGRBBS#" },
+                         { "#BBGGGGPGGGGGB#" },
+                         { "SRBGGGGGGGGPGGS" },
+                         { "SGGGPBGGRBGGGGB" },
+                         { "SGPGGBSSSSBGPGB" },
+                         { "SGGGS####SSBGGS" },
+                         { "#SGGS#####SBGGS" },
+                         { "#SSGS######BPG#" },
+                         { "##SBS#####SBSS#" },
+                         { "##SBBS####SGS##" },
+                         { "###SRS####SSS##" },
+                         { "####S######S###" },
+                         { "###############" } });
+
+        map->addIsland({ 3000, 1000 },
+                       { { "###############" },
+                         { "#########S#####" },
+                         { "#######SBBS####" },
+                         { "########SRGS###" },
+                         { "#####SS##BGGS##" },
+                         { "###SRSBS#SGBR##" },
+                         { "##SSBBBS##SSS##" },
+                         { "###SSS#####S###" },
+                         { "###############" },
+                         { "#######SSSS####" },
+                         { "##SSBBSGPBRSS##" },
+                         { "##SBRBGGBSSS###" },
+                         { "###SSSSBS######" },
+                         { "#######S#######" },
+                         { "###############" } });
+
+        map->addIsland({ 600, 3000 },
+                       { { "###############" },
+                         { "##SS###########" },
+                         { "#SBS###########" },
+                         { "#SGB###########" },
+                         { "##PGS##########" },
+                         { "#SBGS##########" },
+                         { "#SBPS##########" },
+                         { "#SGGRS#########" },
+                         { "##SGGGG########" },
+                         { "###BBGPGSSSSSS#" },
+                         { "###SSBRGGPRBS##" },
+                         { "####SSSSSSSS###" },
+                         { "###############" },
+                         { "###############" },
+                         { "###############" } });
+
+        map->addIsland({ 2000, 3500 },
+                       { { "###############" },
+                         { "############S##" },
+                         { "##########SRSS#" },
+                         { "#####SSRRRBBRS#" },
+                         { "#####SRRBBBRS##" },
+                         { "####SSBBBRS####" },
+                         { "#####SRRBR#####" },
+                         { "######SBBS#####" },
+                         { "#####SSRSS#####" },
+                         { "##SSSRBRS######" },
+                         { "#SBRRRBSS######" },
+                         { "#SSBRBBBS######" },
+                         { "####SSRRB######" },
+                         { "#####SSRRS#####" },
+                         { "###############" } });
+        
+        map->addIsland({4000, 0}, {
+                                        {"###############"},
+                                         {"####SSRRS######"},
+                                         {"###SSBBRBBS####"},
+                                         {"####SRRRRBBB###"},
+                                         {"#####SS#SSSBBS#"},
+                                         {"##########BRBSS"},
+                                         {"##SSSS####SRRSS"},
+                                         {"##SBBRS##SSBBSS"},
+                                         {"#SSRBBS#SSBBRS#"},
+                                         {"##SBBRS#SBRBRR#"},
+                                         {"##SBBRS##BBBBS#"},
+                                         {"###BRBS###SSSS#"},
+                                         {"####SSS########"},
+                                         {"###############"},
+                                         {"###############"}
+                                    });
+
+        Size size{ 50, 50 };
+        m_islandSprites.try_emplace("sand", "data/assets/sand.png", size);
+        m_islandSprites.try_emplace("sand_with_grass", "data/assets/sand_and_grass.png", size);
+        m_islandSprites.try_emplace("grass", "data/assets/grass.png", size);
+        m_islandSprites.try_emplace("rock", "data/assets/rocks.png", size);
+        m_islandSprites.try_emplace("palm", "data/assets/palm.png", size);
+
+        m_charToIslandString['S'] = "sand";
+        m_charToIslandString['B'] = "sand_with_grass";
+        m_charToIslandString['G'] = "grass";
+        m_charToIslandString['R'] = "rock";
+        m_charToIslandString['P'] = "palm";
+
+        Island::setIslandTiles(m_islandSprites);
+        Island::setIslandPattern(m_charToIslandString);
     }
 
     void onEvent(const Event& event) override {
@@ -130,6 +254,20 @@ public:
 
             if (event.keyboard.key == Event::Keyboard::Key::l_control) {
                 m_isDebugMenuOn = !m_isDebugMenuOn;
+                break;
+            }
+
+            if (event.keyboard.key == Event::Keyboard::Key::l_shift) {
+                ship->config().moveMaxSpeed *= 2;
+                ship->config().moveAcceleration *= 2;
+                ship->config().moveDeceleration *= 2;
+                break;
+            }
+
+            if (event.keyboard.key == Event::Keyboard::Key::z) {
+                ship->config().moveMaxSpeed /= 2;
+                ship->config().moveAcceleration /= 2;
+                ship->config().moveDeceleration /= 2;
                 break;
             }
 
@@ -159,18 +297,14 @@ public:
 
     void render() override {
         getEngineInstance()->render(ship->getSprite(), m_view);
-        // getEngineInstance()->render(*secShipForTest, m_view);
-
-        std::ranges::for_each(island->getPositions(), [&](const auto& pos) {
-            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
-                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
-                std::abs(pos.y - ship->getSprite().getPosition().y) <=
-                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
-                island->getSprite().setPosition(pos);
-                getEngineInstance()->render(island->getSprite(), m_view);
-            }
-        });
-
+        map->getIsland(0).render(m_view);
+        map->getIsland(1).render(m_view);
+        map->getIsland(2).render(m_view);
+        map->getIsland(3).render(m_view);
+        map->getIsland(4).render(m_view);
+        map->getIsland(5).render(m_view);
+        map->getIsland(6).render(m_view);
+        map->getIsland(7).render(m_view);
         std::ranges::for_each(map->getWaterPositions(), [&](const auto& pos) {
             if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
                     (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
@@ -180,27 +314,6 @@ public:
                 getEngineInstance()->render(map->getWaterSprite(), m_view);
             }
         });
-
-        std::ranges::for_each(map->getIslandPositions(0), [&](const auto& pos) {
-            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
-                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
-                std::abs(pos.y - ship->getSprite().getPosition().y) <=
-                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale) {
-                map->getIsland(0).getSprite().setPosition(pos);
-                getEngineInstance()->render(map->getIsland(0).getSprite(), m_view);
-            }
-        });
-
-        //        std::ranges::for_each(m_waterPositions, [&](const auto& pos) {
-        //            if (std::abs(pos.x - ship->getSprite().getPosition().x) <=
-        //                    (getEngineInstance()->getWindowSize().width / 2.0f + 100) / m_scale &&
-        //                std::abs(pos.y - ship->getSprite().getPosition().y) <=
-        //                    (getEngineInstance()->getWindowSize().height / 2.0f + 100) / m_scale)
-        //                    {
-        //                water->setPosition(pos);
-        //                getEngineInstance()->render(*water, m_view);
-        //            }
-        //        });
     }
 
     void update() override {
@@ -211,27 +324,9 @@ public:
         };
         time = now;
         ship->update(timeElapsed);
-        island->update();
         map->update();
-        water->updateWindowSize();
-        water->checkAspect({ 800, 600 });
-
-        //      water->setScale({ 800.f / getEngineInstance()->getWindowSize().width,
-        //                       600.f / getEngineInstance()->getWindowSize().height });
-        //  water->setScale({ 1.0f, 600.f / getEngineInstance()->getWindowSize().height });
-
-        auto lastPost{ ship->getSprite().getPosition() };
         m_view.setPosition(ship->getSprite().getPosition());
         m_view.setScale(m_scale);
-
-        auto is{ intersect(ship->getSprite(), *secShipForTest) };
-        //    if (is && m_is_enable_intersect_check) { sprite->setPosition(lastPost); }
-
-        // sprite.updateWindowSize();
-        //    water.updateWindowSize();
-        // sprite.checkAspect({ 800, 600 });
-        //    water.checkAspect({ 800, 600 });
-        // sprite.setPosition({ 0.2, 0.2 });
 
         if (m_isDebugMenuOn) {
             ImGui::Begin("Debug Menu");
@@ -249,13 +344,12 @@ public:
             if (m_debugTankInfo) {
                 ImGui::Checkbox("Intersect", &m_is_enable_intersect_check);
 
-                ImGui::Text("pos x: %.1f\npos y: %.1f\nangle: %.1f\nspeed: %.1f\nintersect: "
-                            "%d\nwidth %.1f\nheight: %.1f\nwindowW %d\nwindowH %d",
+                ImGui::Text("pos x: %.1f\npos y: %.1f\nangle: %.1f\nspeed: %.1f\n"
+                            "width %.1f\nheight: %.1f\nwindowW %d\nwindowH %d",
                             ship->getSprite().getPosition().x,
                             ship->getSprite().getPosition().y,
                             ship->getSprite().getRotate().getInDegrees(),
                             ship->getMoveSpeed(),
-                            is.has_value(),
                             ship->getSprite().getSize().width,
                             ship->getSprite().getSize().height,
                             getEngineInstance()->getWindowSize().width,
