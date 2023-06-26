@@ -61,9 +61,9 @@ void Map::render(const View& view) {
     std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY) - windowTilesY - 1 };
 
     for (std::ptrdiff_t i{ leftCornerY < 0 ? 0 : leftCornerY };
-         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 1) > 159
+         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 2) > 159
                    ? 159
-                   : leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 1);
+                   : leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 2);
          ++i)
         for (std::ptrdiff_t j{ leftCornerX < 0 ? 0 : leftCornerX };
              j <= (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) + 2 > 159

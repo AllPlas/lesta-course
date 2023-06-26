@@ -35,13 +35,18 @@ void Island::update() {
 }
 
 void Island::render(const View& view) {
-    for (const auto& pos : m_positions) {
-        std::reference_wrapper<Sprite> sprite{ s_islandTiles->at(
-            s_charToIslandString->at(pos.first)) };
-        if (std::abs(pos.second.x - view.getPosition().x) <=
-                (getEngineInstance()->getWindowSize().width / 2.0f + 100) / view.getScale() &&
-            std::abs(pos.second.y - view.getPosition().y) <=
-                (getEngineInstance()->getWindowSize().height / 2.0f + 100) / view.getScale()) {
+    auto viewPos{ view.getPosition() };
+    auto leftX{ viewPos.x - (getEngineInstance()->getWindowSize().width / 2.0f) };
+    auto leftY{ viewPos.y - (getEngineInstance()->getWindowSize().height / 2.0f) };
+
+    Rectangle viewRect{ .xy{ leftX, leftY },
+                        .wh = { static_cast<float>(getEngineInstance()->getWindowSize().width),
+                                static_cast<float>(getEngineInstance()->getWindowSize().height) } };
+
+    if (intersect(viewRect, m_rectangle)) {
+        for (const auto& pos : m_positions) {
+            std::reference_wrapper<Sprite> sprite{ s_islandTiles->at(
+                s_charToIslandString->at(pos.first)) };
             sprite.get().setPosition(pos.second);
             getEngineInstance()->render(sprite, view);
         }
