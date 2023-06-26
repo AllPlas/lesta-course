@@ -27,17 +27,17 @@ void Map::addIsland(Position position, const std::vector<std::string>& pattern) 
                                  m_textureSize.height * static_cast<float>(pattern.size()) } };
     m_islands.emplace_back(m_textureSize, rectangle, pattern);
 
-    //    for (const auto& pos : m_islands.back().getPositions()) {
-    //        auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos) };
-    //        if (found != m_waterPositions.end()) m_waterPositions.erase(found);
-    //    }
+    for (const auto& pos : m_islands.back().getPositions()) {
+        auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos.second) };
+        if (found != m_waterPositions.end()) m_waterPositions.erase(found);
+    }
 }
 
 const std::vector<Position>& Map::getWaterPositions() const noexcept { return m_waterPositions; }
 
-void Map::update() {
+void Map::resizeUpdate() {
     for (auto& island : m_islands)
-        island.update();
+        island.resizeUpdate();
 
     m_waterSprite.updateWindowSize();
     m_waterSprite.checkAspect({ 800, 600 });
@@ -49,26 +49,32 @@ void Map::render(const View& view) {
     for (auto& island : m_islands)
         island.render(view);
 
-    auto shipPos{ view.getPosition() };
+    auto viewPos{ view.getPosition() };
 
-    auto tileX{ static_cast<std::size_t>(shipPos.x) / m_textureSize.width + 8 };
-    auto tileY{ static_cast<std::size_t>(shipPos.y) / m_textureSize.height + 6 };
+    auto tileX{ static_cast<std::size_t>(viewPos.x) / m_textureSize.width + 8 };
+    auto tileY{ static_cast<std::size_t>(viewPos.y) / m_textureSize.height + 6 };
 
-    auto windowTilesX{ (getEngineInstance()->getWindowSize().width / 50) / 2 };
-    auto windowTilesY{ (getEngineInstance()->getWindowSize().height / 50) / 2 };
+    auto windowTilesX{ (getEngineInstance()->getWindowSize().width / 50) / 2 / view.getScale() };
+    auto windowTilesY{ (getEngineInstance()->getWindowSize().height / 50) / 2 / view.getScale() };
 
-    std::ptrdiff_t leftCornerX{ static_cast<std::ptrdiff_t>(tileX) - windowTilesX - 1 };
-    std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY) - windowTilesY - 1 };
+    std::ptrdiff_t leftCornerX{ static_cast<std::ptrdiff_t>(tileX - windowTilesX - 1) };
+    std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY - windowTilesY - 1) };
 
     for (std::ptrdiff_t i{ leftCornerY < 0 ? 0 : leftCornerY };
-         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 2) > 159
+         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 / view.getScale() +
+                2) > 159
                    ? 159
-                   : leftCornerY + getEngineInstance()->getWindowSize().height / 50 + 2);
+                   : leftCornerY +
+                         getEngineInstance()->getWindowSize().height / 50 / view.getScale() + 2);
          ++i)
         for (std::ptrdiff_t j{ leftCornerX < 0 ? 0 : leftCornerX };
-             j <= (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) + 2 > 159
-                       ? 159
-                       : leftCornerX + (getEngineInstance()->getWindowSize().width / 50) + 2);
+             j <=
+             (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) / view.getScale() +
+                          2 >
+                      159
+                  ? 159
+                  : leftCornerX +
+                        (getEngineInstance()->getWindowSize().width / 50) / view.getScale() + 2);
              ++j) {
             getWaterSprite().setPosition({ getWaterPositions().at(i * 160 + j) });
             getEngineInstance()->render(getWaterSprite(), view);

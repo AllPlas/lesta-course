@@ -30,7 +30,7 @@ public:
 
     void addIsland(Position position, const std::vector<std::string>& pattern);
     [[nodiscard]] Island& getIsland(std::size_t id) noexcept;
-    void update();
+    void resizeUpdate();
     void render(const View& view);
 
     [[nodiscard]] const std::vector<Position>& getWaterPositions() const noexcept;
