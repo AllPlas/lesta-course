@@ -22,6 +22,7 @@ public:
     };
 
 private:
+    Position m_position{};
     bool m_isMove{};
     bool m_isRotateLeft{};
     bool m_isRotateRight{};
@@ -45,6 +46,7 @@ public:
 
     Config& config() noexcept;
 
+    void resizeUpdate();
     void update(std::chrono::microseconds timeElapsed);
 
     [[nodiscard]] const Sprite& getSprite() const noexcept;

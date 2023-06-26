@@ -1,7 +1,6 @@
 #include "ship.hxx"
 
 #include <algorithm>
-#include <engine.hxx>
 
 Ship::Ship(const fs::path& textureFilepath, Size size) : m_sprite{ textureFilepath, size } {}
 
@@ -18,8 +17,6 @@ void Ship::stopRotateLeft() { m_isRotateLeft = false; }
 void Ship::stopRotateRight() { m_isRotateRight = false; }
 
 void Ship::update(std::chrono::microseconds timeElapsed) {
-    m_sprite.updateWindowSize();
-    m_sprite.checkAspect({ 800, 600 });
     float timeElapsedInSec{ static_cast<float>(timeElapsed.count()) / 1000000.0f };
 
     if (m_isMove) {
@@ -64,13 +61,16 @@ void Ship::update(std::chrono::microseconds timeElapsed) {
 
     m_sprite.setRotate(newAngle);
 
-    float newX = m_sprite.getPosition().x + deltaX * std::cos(m_sprite.getRotate().getInRadians()) -
+    float newX = m_position.x + deltaX * std::cos(m_sprite.getRotate().getInRadians()) -
                  deltaY * std::sin(m_sprite.getRotate().getInRadians());
 
-    float newY = m_sprite.getPosition().y + deltaX * std::sin(m_sprite.getRotate().getInRadians()) +
+    float newY = m_position.y + deltaX * std::sin(m_sprite.getRotate().getInRadians()) +
                  deltaY * std::cos(m_sprite.getRotate().getInRadians());
 
-    m_sprite.setPosition({ newX, newY });
+    m_position.x = newX;
+    m_position.y = newY;
+
+    m_sprite.setPosition(m_position);
 }
 
 Ship::Config& Ship::config() noexcept { return m_config; }
@@ -80,3 +80,8 @@ const Sprite& Ship::getSprite() const noexcept { return m_sprite; }
 float Ship::getMoveSpeed() const noexcept { return m_currentMoveSpeed; }
 
 float Ship::getRotateSpeed() const noexcept { return m_currentRotateSpeed; }
+
+void Ship::resizeUpdate() {
+    m_sprite.updateWindowSize();
+    m_sprite.checkAspect({ 800, 600 });
+}
