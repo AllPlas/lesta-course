@@ -97,6 +97,8 @@ void Sprite::setRotate(float angle) {
     m_rotationMatrix[1][0] = -std::sin(m_rotationAngle.getInRadians());
     m_rotationMatrix[1][1] = std::cos(m_rotationAngle.getInRadians());
 
+    updateWindowSize();
+    checkAspect({ 800, 600 });
     auto aspectWH{ static_cast<float>(800) / 600.f };
     m_aspectMatrix[1][1] *=
         1 + std::abs((aspectWH - 1) * pow(std::sin(m_rotationAngle.getInRadians()), 2));

@@ -5,7 +5,7 @@
 
 #include "structures.hxx"
 
-class View
+class View final
 {
 private:
     Position m_position{};
