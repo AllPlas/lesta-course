@@ -218,7 +218,7 @@ public:
 
         Size size{ 50, 50 };
         m_islandSprites.try_emplace("sand", "data/assets/sand.png", size);
-        m_islandSprites.try_emplace("sand_with_grass", "data/assets/sand_and_grass.png", size);
+        m_islandSprites.try_emplace("sand_with_grass", "data/assets/sand_with_grass.png", size);
         m_islandSprites.try_emplace("grass", "data/assets/grass.png", size);
         m_islandSprites.try_emplace("rock", "data/assets/rocks.png", size);
         m_islandSprites.try_emplace("palm", "data/assets/palm.png", size);
