@@ -8,7 +8,9 @@
 
 namespace gil = boost::gil;
 
-Texture::~Texture() { glDeleteTextures(1, &m_texture); }
+Texture::~Texture() {
+    if (m_copied) glDeleteTextures(1, &m_texture);
+}
 
 void Texture::load(const fs::path& path) {
     gil::rgba8_image_t image{};
@@ -17,8 +19,10 @@ void Texture::load(const fs::path& path) {
 }
 
 void Texture::load(const void* pixels, std::size_t width, std::size_t height) {
-    glDeleteTextures(1, &m_texture);
-    openGLCheck();
+    if (m_copied) {
+        glDeleteTextures(1, &m_texture);
+        openGLCheck();
+    }
 
     glGenTextures(1, &m_texture);
     openGLCheck();
@@ -61,4 +65,17 @@ std::size_t Texture::getHeight() const noexcept { return m_height; }
 void Texture::bind() const {
     glBindTexture(GL_TEXTURE_2D, m_texture);
     openGLCheck();
+}
+
+Texture::Texture(Texture& texture)
+    : m_texture{ texture.m_texture }, m_width{ texture.m_width }, m_height{ texture.m_height } {
+    texture.m_copied = true;
+}
+
+Texture& Texture::operator=(Texture& texture) {
+    m_texture = texture.m_texture;
+    m_width = texture.m_width;
+    m_height = texture.m_height;
+    texture.m_copied = true;
+    return *this;
 }

@@ -13,8 +13,16 @@ private:
     std::size_t m_width{};
     std::size_t m_height{};
 
+    bool m_copied{};
+
 public:
     Texture() = default;
+    Texture(Texture& texture);
+    Texture& operator=(Texture& texture);
+
+    Texture(Texture&& texture) = delete;
+    Texture& operator=(Texture&& texture) = delete;
+
     ~Texture();
 
     void load(const fs::path& path);
