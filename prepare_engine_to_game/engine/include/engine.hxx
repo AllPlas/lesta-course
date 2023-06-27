@@ -179,6 +179,9 @@ struct Event
 
 std::ostream& operator<<(std::ostream& out, const Event& event);
 
+std::string_view keyToStr(Event::Keyboard::Key key);
+Event::Keyboard::Key ImGuiKeyToEventKey(ImGuiKey key);
+
 struct Triangle
 {
     std::array<Vertex, 3> vertices{};
@@ -211,6 +214,13 @@ public:
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint16_t>& indexBuffer,
                         const Texture& texture) = 0;
+    virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture) = 0;
+    virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture,
+                        const View& view) = 0;
     virtual void render(const Sprite& sprite) = 0;
     virtual void render(const Sprite& sprite, const View& view) = 0;
     [[nodiscard]] virtual WindowSize getWindowSize() const noexcept = 0;

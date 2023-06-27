@@ -3,8 +3,10 @@
 #include <engine.hxx>
 #include <stdexcept>
 
+#include "config.hxx"
 #include "island.hxx"
 #include "map.hxx"
+#include "menu.hxx"
 #include "player.hxx"
 #include "ship.hxx"
 
@@ -18,8 +20,9 @@ private:
     Ship* ship{};
     Player* player{};
     Map* map{};
-
     Texture* coin{};
+
+    Menu menu{};
 
     std::unordered_map<std::string, Sprite> m_islandSprites{};
     std::unordered_map<char, std::string> m_charToIslandString{};
@@ -28,31 +31,11 @@ private:
     bool m_viewOnTreasure{};
 
     View m_view{};
-    float m_scale{ 1.0f };
 
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
 
     int m_framerate{ 150 };
-
-    bool is_binding_key = false;
-    Event::Keyboard::Key* binding_key = nullptr;
-    ImGuiKey m_key{};
-
-    struct Config
-    {
-        Config() = delete;
-        inline static Event::Keyboard::Key ship_move_key{ Event::Keyboard::Key::w };
-        inline static Event::Keyboard::Key ship_rotate_left_key{ Event::Keyboard::Key::a };
-        inline static Event::Keyboard::Key ship_rotate_right_key{ Event::Keyboard::Key::d };
-        inline static Event::Keyboard::Key interact_key{ Event::Keyboard::Key::e };
-        inline static Event::Keyboard::Key player_move_up_key{ Event::Keyboard::Key::w };
-        inline static Event::Keyboard::Key player_move_left_key{ Event::Keyboard::Key::a };
-        inline static Event::Keyboard::Key player_move_right_key{ Event::Keyboard::Key::d };
-        inline static Event::Keyboard::Key player_move_down_key{ Event::Keyboard::Key::s };
-        inline static Event::Keyboard::Key view_treasure_key{ Event::Keyboard::Key::space };
-        inline static Event::Keyboard::Key dig_treasure_key{ Event::Keyboard::Key::f };
-    };
 
 public:
     PirateGame() = default;
@@ -356,6 +339,16 @@ public:
                 break;
             }
 
+            if (event.keyboard.key == Event::Keyboard::Key::escape) {
+                if (menu.getBindKey())
+                    menu.setBindKey(false);
+                else if (menu.getSettingMenu())
+                    menu.setSettingMenu(false);
+                else
+                    menu.setActive(!menu.getActive());
+                break;
+            }
+
             break;
         case Event::Type::key_up:
             if (m_isOnShip) {
@@ -410,6 +403,11 @@ public:
     }
 
     void render() override {
+        if (menu.getActive()) {
+            menu.render();
+            return;
+        }
+
         if (m_viewOnTreasure) {
             getEngineInstance()->render(map->getTreasure().getXMarkSprite(), m_view);
         }
@@ -421,6 +419,28 @@ public:
         }
 
         map->render(m_view);
+
+        ImGui::SetNextWindowPos({ getEngineInstance()->getWindowSize().width - 150.0f, 0.0f });
+        ImGui::Begin("_",
+                     nullptr,
+                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+
+        auto tex = reinterpret_cast<ImTextureID>(coin->operator*());
+        ImVec2 cursorPos{ ImGui::GetCursorPos() };
+        ImGui::SetCursorPosY(cursorPos.y + 4);
+        ImVec2 texSize(28, 28);
+
+        ImGui::PushItemWidth(150);
+
+        ImGui::Image(tex, texSize);
+        ImGui::SameLine();
+
+        ImGui::SetCursorPosY(cursorPos.y);
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::Text("%d", player->getMoney());
+        ImGui::PopItemWidth();
+        ImGui::End();
     }
 
     void update() override {
@@ -449,7 +469,7 @@ public:
         else
             m_view.setPosition(map->getTreasure().getPosition());
 
-        m_view.setScale(m_scale);
+        m_view.setScale(Config::camera_height);
 
         Position viewPos{ m_view.getPosition() };
         if (m_view.getPosition().x <
@@ -472,28 +492,6 @@ public:
                         300.f;
 
         m_view.setPosition(viewPos);
-
-        ImGui::SetNextWindowPos({ getEngineInstance()->getWindowSize().width - 150.0f, 0.0f });
-        ImGui::Begin("_",
-                     nullptr,
-                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-
-        auto tex = reinterpret_cast<ImTextureID>(coin->operator*());
-        ImVec2 cursorPos{ ImGui::GetCursorPos() };
-        ImGui::SetCursorPosY(cursorPos.y + 4);
-        ImVec2 texSize(28, 28);
-
-        ImGui::PushItemWidth(150);
-
-        ImGui::Image(tex, texSize);
-        ImGui::SameLine();
-
-        ImGui::SetCursorPosY(cursorPos.y);
-        ImGui::SetWindowFontScale(2.5f);
-        ImGui::Text("%d", player->getMoney());
-        ImGui::PopItemWidth();
-        ImGui::End();
 
         if (m_isDebugMenuOn) {
             ImGui::Begin("Debug Menu");
@@ -521,26 +519,7 @@ public:
                             getEngineInstance()->getWindowSize().height);
             }
 
-            ImGui::SliderFloat("camera height", &m_scale, 0.1f, 10.f);
-
-            ImGui::Text("Move key: %s", ImGui::GetKeyName(m_key));
-            auto it = ImGui::GetKeyIndex(ImGuiKey_D);
-            ImGui::SameLine();
-            if (ImGui::Button("change key")) { is_binding_key = true; }
-            if (is_binding_key) {
-                ImGui::Text("Waiting for keyboard input...");
-                for (ImGuiKey key{ ImGuiKey_NamedKey_BEGIN }; key < ImGuiKey_NamedKey_END;
-                     key = static_cast<ImGuiKey>(key + 1)) {
-                    if (ImGui::IsKeyPressed(key)) {
-                        m_key = key;
-
-                        if (m_key == ImGuiKey_D) Config::ship_move_key = Event::Keyboard::Key::d;
-
-                        is_binding_key = false;
-                        break;
-                    }
-                }
-            }
+            ImGui::SliderFloat("camera height", &Config::camera_height, 0.1f, 10.f);
             ImGui::End();
         }
     }

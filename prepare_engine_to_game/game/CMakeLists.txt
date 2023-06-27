@@ -18,7 +18,10 @@ add_library(game SHARED
         src/bottle.cxx
         src/bottle.hxx
         src/treasure.cxx
-        src/treasure.hxx)
+        src/treasure.hxx
+        src/menu.cxx
+        src/menu.hxx
+        src/config.hxx)
 
 if (APPLE)
     target_link_libraries(game PRIVATE engine_lib)

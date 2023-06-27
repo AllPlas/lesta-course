@@ -32,6 +32,12 @@ private:
     std::vector<Position> m_waterPositions{};
     std::vector<Position> m_airPositions{};
 
+    std::vector<Vertex2> m_grid{};
+    std::vector<std::uint32_t> m_indGrid{};
+
+    VertexBuffer<Vertex2>* m_gridP{};
+    IndexBuffer<std::uint32_t>* m_indGridP{};
+
     bool m_hasBottle{};
     bool m_isTreasureUnearthed{};
 

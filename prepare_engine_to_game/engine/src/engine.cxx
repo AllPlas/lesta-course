@@ -155,6 +155,164 @@ std::ostream& operator<<(std::ostream& out, const Event& event) {
     return out;
 }
 
+std::string_view keyToStr(Event::Keyboard::Key key) { return s_eventKeysToStringView.at(key); }
+
+Event::Keyboard::Key ImGuiKeyToEventKey(ImGuiKey key) {
+    switch (key) {
+    case ImGuiKey_LeftArrow:
+        return Event::Keyboard::Key::left_arrow;
+    case ImGuiKey_RightArrow:
+        return Event::Keyboard::Key::right_arrow;
+    case ImGuiKey_UpArrow:
+        return Event::Keyboard::Key::up_arrow;
+    case ImGuiKey_DownArrow:
+        return Event::Keyboard::Key::down_arrow;
+    case ImGuiKey_KeyPadEnter:
+        return Event::Keyboard::Key::numpad_enter;
+    case ImGuiKey_KeypadMultiply:
+        return Event::Keyboard::Key::numpad_multiply;
+    case ImGuiKey_KeypadAdd:
+        return Event::Keyboard::Key::numpad_add;
+    case ImGuiKey_KeypadSubtract:
+        return Event::Keyboard::Key::numpad_subtract;
+    case ImGuiKey_KeypadDivide:
+        return Event::Keyboard::Key::numpad_divide;
+    case ImGuiKey_0:
+        return Event::Keyboard::Key::num_0;
+    case ImGuiKey_1:
+        return Event::Keyboard::Key::num_1;
+    case ImGuiKey_2:
+        return Event::Keyboard::Key::num_2;
+    case ImGuiKey_3:
+        return Event::Keyboard::Key::num_3;
+    case ImGuiKey_4:
+        return Event::Keyboard::Key::num_4;
+    case ImGuiKey_5:
+        return Event::Keyboard::Key::num_5;
+    case ImGuiKey_6:
+        return Event::Keyboard::Key::num_6;
+    case ImGuiKey_7:
+        return Event::Keyboard::Key::num_7;
+    case ImGuiKey_8:
+        return Event::Keyboard::Key::num_8;
+    case ImGuiKey_9:
+        return Event::Keyboard::Key::num_9;
+    case ImGuiKey_F1:
+        return Event::Keyboard::Key::f1;
+    case ImGuiKey_F2:
+        return Event::Keyboard::Key::f2;
+    case ImGuiKey_F3:
+        return Event::Keyboard::Key::f3;
+    case ImGuiKey_F4:
+        return Event::Keyboard::Key::f4;
+    case ImGuiKey_F5:
+        return Event::Keyboard::Key::f5;
+    case ImGuiKey_F6:
+        return Event::Keyboard::Key::f6;
+    case ImGuiKey_F7:
+        return Event::Keyboard::Key::f7;
+    case ImGuiKey_F8:
+        return Event::Keyboard::Key::f8;
+    case ImGuiKey_F9:
+        return Event::Keyboard::Key::f9;
+    case ImGuiKey_F10:
+        return Event::Keyboard::Key::f10;
+    case ImGuiKey_F11:
+        return Event::Keyboard::Key::f11;
+    case ImGuiKey_F12:
+        return Event::Keyboard::Key::f12;
+    case ImGuiKey_Pause:
+        return Event::Keyboard::Key::pause;
+    case ImGuiKey_Backspace:
+        return Event::Keyboard::Key::backspace;
+    case ImGuiKey_Enter:
+        return Event::Keyboard::Key::enter;
+    case ImGuiKey_Escape:
+        return Event::Keyboard::Key::escape;
+    case ImGuiKey_A:
+        return Event::Keyboard::Key::a;
+    case ImGuiKey_B:
+        return Event::Keyboard::Key::b;
+    case ImGuiKey_C:
+        return Event::Keyboard::Key::c;
+
+    case ImGuiKey_D:
+        return Event::Keyboard::Key::d;
+    case ImGuiKey_E:
+        return Event::Keyboard::Key::e;
+    case ImGuiKey_F:
+        return Event::Keyboard::Key::f;
+    case ImGuiKey_G:
+        return Event::Keyboard::Key::g;
+    case ImGuiKey_H:
+        return Event::Keyboard::Key::h;
+    case ImGuiKey_I:
+        return Event::Keyboard::Key::i;
+    case ImGuiKey_J:
+        return Event::Keyboard::Key::j;
+    case ImGuiKey_K:
+        return Event::Keyboard::Key::k;
+    case ImGuiKey_L:
+        return Event::Keyboard::Key::l;
+    case ImGuiKey_M:
+        return Event::Keyboard::Key::m;
+    case ImGuiKey_N:
+        return Event::Keyboard::Key::n;
+    case ImGuiKey_O:
+        return Event::Keyboard::Key::o;
+    case ImGuiKey_P:
+        return Event::Keyboard::Key::p;
+    case ImGuiKey_Q:
+        return Event::Keyboard::Key::q;
+    case ImGuiKey_R:
+        return Event::Keyboard::Key::r;
+    case ImGuiKey_S:
+        return Event::Keyboard::Key::s;
+    case ImGuiKey_T:
+        return Event::Keyboard::Key::t;
+    case ImGuiKey_U:
+        return Event::Keyboard::Key::u;
+    case ImGuiKey_V:
+        return Event::Keyboard::Key::v;
+    case ImGuiKey_W:
+        return Event::Keyboard::Key::w;
+    case ImGuiKey_X:
+        return Event::Keyboard::Key::x;
+    case ImGuiKey_Y:
+        return Event::Keyboard::Key::y;
+    case ImGuiKey_Z:
+        return Event::Keyboard::Key::z;
+    case ImGuiKey_Space:
+        return Event::Keyboard::Key::space;
+    case ImGuiKey_Insert:
+        return Event::Keyboard::Key::insert;
+    case ImGuiKey_Home:
+        return Event::Keyboard::Key::home;
+    case ImGuiKey_PageUp:
+        return Event::Keyboard::Key::page_up;
+    case ImGuiKey_Delete:
+        return Event::Keyboard::Key::delete_key;
+    case ImGuiKey_End:
+        return Event::Keyboard::Key::end;
+    case ImGuiKey_PageDown:
+        return Event::Keyboard::Key::page_down;
+    case ImGuiKey_CapsLock:
+        return Event::Keyboard::Key::caps_lock;
+    case ImGuiKey_ScrollLock:
+        return Event::Keyboard::Key::scroll_lock;
+    case ImGuiKey_NumLock:
+        return Event::Keyboard::Key::num_lock;
+    case ImGuiKey_PrintScreen:
+        return Event::Keyboard::Key::print_screen;
+    case ImGuiKey_LeftShift:
+        return Event::Keyboard::Key::l_shift;
+    case ImGuiKey_LeftCtrl:
+        return Event::Keyboard::Key::l_control;
+    default:
+        return Event::Keyboard::Key::not_key;
+    }
+};
+
 std::ifstream& operator>>(std::ifstream& in, Triangle& triangle) {
     for (auto& vertex : triangle.vertices)
         in >> vertex;
@@ -445,7 +603,11 @@ public:
 
         // Setup Platform/Renderer backends
         ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
+#ifdef __APPLE__
         const char* glsl_version = "#version 150";
+#else
+        const char* glsl_version = "#version 300 es";
+#endif
         ImGui_ImplOpenGL3_Init(glsl_version);
 
         return "";
@@ -506,7 +668,7 @@ public:
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        int width, height;
+        int width{}, height{};
         SDL_GetWindowSizeInPixels(m_window, &width, &height);
         glViewport(0, 0, width, height);
         openGLCheck();
@@ -574,11 +736,72 @@ public:
 
         glDrawElements(
             GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
-        //  openGLCheck();
+        openGLCheck();
 
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
+    }
+
+    void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                const IndexBuffer<std::uint32_t>& indexBuffer,
+                const Texture& texture) override {
+        m_program.get().use();
+        glm::mat3 mat{ 1.0f };
+        m_program.get().setUniform("matrix", mat);
+        m_program.get().setUniform("texSampler", texture);
+
+        texture.bind();
+        vertexBuffer.bind();
+        indexBuffer.bind();
+
+        glEnableVertexAttribArray(0);
+        openGLCheck();
+
+        glEnableVertexAttribArray(1);
+        openGLCheck();
+
+        glEnableVertexAttribArray(2);
+        openGLCheck();
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
+        openGLCheck();
+
+        glVertexAttribPointer(1,
+                              2,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
+        openGLCheck();
+
+        glVertexAttribPointer(2,
+                              4,
+                              GL_UNSIGNED_BYTE,
+                              GL_FALSE,
+                              sizeof(Vertex2),
+                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
+        openGLCheck();
+
+        glDrawElements(
+            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_INT, nullptr);
+        openGLCheck();
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+    }
+
+    void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                const IndexBuffer<std::uint32_t>& indexBuffer,
+                const Texture& texture,
+                const View& view) override {
+        ShaderProgram& lastProgram{ m_program.get() };
+        m_program = m_shaderProgramWithView;
+        m_program.get().use();
+        m_program.get().setUniform("viewMatrix", view.getViewMatrix());
+        render(vertexBuffer, indexBuffer, texture);
+        m_program = lastProgram;
     }
 
     void render(const Sprite& sprite) override {

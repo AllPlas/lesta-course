@@ -24,6 +24,64 @@ Map::Map(const fs::path& waterTexturePath,
             m_waterPositions.push_back({ xPos, yPos });
         }
     }
+
+    for (auto pos : m_waterPositions) {
+        auto leftXpos{ (pos.x - xOffset) - textureSize.width / 2.0f };
+        auto rightXpos{ (pos.x - xOffset) + textureSize.width / 2.0f };
+        auto topYpos{ (pos.y - yOffset) + textureSize.height / 2.0f };
+        auto bottomYpos{ (pos.y - yOffset) - textureSize.height / 2.0f };
+
+        auto normalizedXLeftPos{ (leftXpos / (800.f * 0.5f)) - 1.0f };
+        auto normalizedXRightPos{ (rightXpos / (800.f * 0.5f)) - 1.0f };
+        //  auto normalizedYTopPos{ 1.0f - (topYpos / (600.f * 0.5f)) };
+        //  auto normalizedYBottomPos{ 1.0f - (bottomYpos / (600.f * 0.5f)) };
+        auto normalizedYTopPos{ (topYpos / (600.f * 0.5f)) - 1.0f };
+        auto normalizedYBottomPos{ (bottomYpos / (600.f * 0.5f)) - 1.0f };
+
+        Vertex2 v1{};
+        v1.x = normalizedXLeftPos;
+        v1.y = normalizedYTopPos;
+        v1.texX = 0.0;
+        v1.texY = 0.0;
+
+        m_grid.push_back(v1);
+        auto firstIdx{ m_grid.size() - 1 };
+
+        Vertex2 v2{};
+        v2.x = normalizedXRightPos;
+        v2.y = normalizedYTopPos;
+        v2.texX = 1.0;
+        v2.texY = 0.0;
+        m_grid.push_back(v2);
+        auto secondIdx{ m_grid.size() - 1 };
+
+        Vertex2 v3{};
+        v3.x = normalizedXRightPos;
+        v3.y = normalizedYBottomPos;
+        v3.texX = 1.0;
+        v3.texY = 1.0;
+        m_grid.push_back(v3);
+        auto thirdIdx{ m_grid.size() - 1 };
+
+        Vertex2 v4{};
+        v4.x = normalizedXLeftPos;
+        v4.y = normalizedYBottomPos;
+        v4.texX = 0.0;
+        v4.texY = 1.0;
+        m_grid.push_back(v4);
+        auto fourthIdx{ m_grid.size() - 1 };
+
+        m_indGrid.push_back(firstIdx);
+        m_indGrid.push_back(secondIdx);
+        m_indGrid.push_back(thirdIdx);
+
+        m_indGrid.push_back(firstIdx);
+        m_indGrid.push_back(thirdIdx);
+        m_indGrid.push_back(fourthIdx);
+    }
+
+    m_gridP = new VertexBuffer<Vertex2>{ m_grid };
+    m_indGridP = new IndexBuffer{ m_indGrid };
 }
 
 void Map::addIsland(Position position, const std::vector<std::string>& pattern) {
@@ -59,36 +117,43 @@ void Map::render(const View& view) {
 
     if (m_hasBottle) getEngineInstance()->render(m_bottle.getSprite(), view);
 
-    auto viewPos{ view.getPosition() };
+    getEngineInstance()->render(*m_gridP, *m_indGridP, m_waterSprite.getTexture(), view);
 
-    auto tileX{ static_cast<std::size_t>(viewPos.x) / m_textureSize.width + 8 };
-    auto tileY{ static_cast<std::size_t>(viewPos.y) / m_textureSize.height + 6 };
-
-    auto windowTilesX{ (getEngineInstance()->getWindowSize().width / 50) / 2 / view.getScale() };
-    auto windowTilesY{ (getEngineInstance()->getWindowSize().height / 50) / 2 / view.getScale() };
-
-    std::ptrdiff_t leftCornerX{ static_cast<std::ptrdiff_t>(tileX - windowTilesX - 1) };
-    std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY - windowTilesY - 1) };
-
-    for (std::ptrdiff_t i{ leftCornerY < 0 ? 0 : leftCornerY };
-         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 / view.getScale() +
-                2) > 159
-                   ? 159
-                   : leftCornerY +
-                         getEngineInstance()->getWindowSize().height / 50 / view.getScale() + 2);
-         ++i)
-        for (std::ptrdiff_t j{ leftCornerX < 0 ? 0 : leftCornerX };
-             j <=
-             (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) / view.getScale() +
-                          2 >
-                      159
-                  ? 159
-                  : leftCornerX +
-                        (getEngineInstance()->getWindowSize().width / 50) / view.getScale() + 2);
-             ++j) {
-            getWaterSprite().setPosition({ getWaterPositions().at(i * 160 + j) });
-            getEngineInstance()->render(getWaterSprite(), view);
-        }
+    //    auto viewPos{ view.getPosition() };
+    //
+    //    auto tileX{ static_cast<std::size_t>(viewPos.x) / m_textureSize.width + 8 };
+    //    auto tileY{ static_cast<std::size_t>(viewPos.y) / m_textureSize.height + 6 };
+    //
+    //    auto windowTilesX{ (getEngineInstance()->getWindowSize().width / 50) / 2 / view.getScale()
+    //    }; auto windowTilesY{ (getEngineInstance()->getWindowSize().height / 50) / 2 /
+    //    view.getScale() };
+    //
+    //    std::ptrdiff_t leftCornerX{ static_cast<std::ptrdiff_t>(tileX - windowTilesX - 1) };
+    //    std::ptrdiff_t leftCornerY{ static_cast<std::ptrdiff_t>(tileY - windowTilesY - 1) };
+    //
+    //    for (std::ptrdiff_t i{ leftCornerY < 0 ? 0 : leftCornerY };
+    //         i <= ((leftCornerY + getEngineInstance()->getWindowSize().height / 50 /
+    //         view.getScale() +
+    //                2) > 159
+    //                   ? 159
+    //                   : leftCornerY +
+    //                         getEngineInstance()->getWindowSize().height / 50 / view.getScale() +
+    //                         2);
+    //         ++i)
+    //        for (std::ptrdiff_t j{ leftCornerX < 0 ? 0 : leftCornerX };
+    //             j <=
+    //             (leftCornerX + (getEngineInstance()->getWindowSize().width / 50) /
+    //             view.getScale() +
+    //                          2 >
+    //                      159
+    //                  ? 159
+    //                  : leftCornerX +
+    //                        (getEngineInstance()->getWindowSize().width / 50) / view.getScale() +
+    //                        2);
+    //             ++j) {
+    //            getWaterSprite().setPosition({ getWaterPositions().at(i * 160 + j) });
+    //            getEngineInstance()->render(getWaterSprite(), view);
+    //        }
 }
 
 Sprite& Map::getWaterSprite() noexcept { return m_waterSprite; }
@@ -147,12 +212,15 @@ bool Map::hasBottle() const noexcept { return m_hasBottle; }
 void Map::generateBottle() {
     if (!m_hasBottle) {
         m_hasBottle = true;
-        m_bottle.setPosition({ 125, 125 });
+        auto rnd = rand() % m_waterPositions.size();
+        m_bottle.setPosition(m_waterPositions.at(rnd));
     }
 }
 
 void Map::generateTreasure() {
-    auto pos{ m_islands.at(0).getPositions().at(0).second };
+    auto rndIsland = rand() % m_islands.size();
+    auto rndPos = rand() % m_islands[rndIsland].getPositions().size();
+    auto pos{ m_islands[rndIsland].getPositions().at(rndPos).second };
     m_treasure.setPosition(pos);
 }
 
