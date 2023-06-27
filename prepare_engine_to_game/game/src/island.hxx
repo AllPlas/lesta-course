@@ -7,6 +7,9 @@
 #include <vector>
 #include <view.hxx>
 
+#include "player.hxx"
+#include "ship.hxx"
+
 namespace fs = std::filesystem;
 
 class Island final
@@ -17,8 +20,8 @@ private:
     std::vector<std::string> m_pattern{};
     std::vector<std::pair<char, Position>> m_positions{};
 
-    inline static std::unordered_map<std::string, Sprite>* s_islandTiles{};
-    inline static std::unordered_map<char, std::string>* s_charToIslandString{};
+    inline static  std::unordered_map<std::string, Sprite>* s_islandTiles{};
+    inline static const std::unordered_map<char, std::string>* s_charToIslandString{};
 
 public:
     Island(Size size, Rectangle rectangle, const std::vector<std::string>& pattern);
@@ -29,7 +32,17 @@ public:
     void resizeUpdate();
     void render(const View& view);
 
+    void interact(Ship& ship);
+    void interact(Player& player);
+
     [[nodiscard]] const std::vector<std::pair<char, Position>>& getPositions() const noexcept;
+    [[nodiscard]] bool isIslandOnView(Position position) const noexcept;
+
+    friend bool intersect(const Island& island, const Ship& ship);
+    friend bool intersect(const Island& island, const Player& player);
 };
+
+bool intersect(const Island& island, const Ship& ship);
+bool intersect(const Island& island, const Player& player);
 
 #endif // ENGINE_PREPARE_TO_GAME_ISLAND_HXX

@@ -4,10 +4,15 @@
 
 Map::Map(const fs::path& waterTexturePath,
          const fs::path& airTexturePath,
+         const fs::path& bottleTexturePath,
+         const fs::path& treasureTexturePath,
+         const fs::path& xMarkTexturePath,
          Size textureSize,
          Size mapSize)
     : m_waterSprite{ waterTexturePath, textureSize }
     , m_airSprite{ airTexturePath, textureSize }
+    , m_bottle{ bottleTexturePath, textureSize }
+    , m_treasure{ treasureTexturePath, xMarkTexturePath, textureSize }
     , m_textureSize{ textureSize }
     , m_mapSize{ mapSize } {
     float xOffset = -((800 / 2.0f) - (m_textureSize.width / 2.0f));
@@ -39,6 +44,9 @@ void Map::resizeUpdate() {
     for (auto& island : m_islands)
         island.resizeUpdate();
 
+    m_bottle.resizeUpdate();
+    m_treasure.resizeUpdate();
+
     m_waterSprite.updateWindowSize();
     m_waterSprite.checkAspect({ 800, 600 });
     m_airSprite.updateWindowSize();
@@ -48,6 +56,8 @@ void Map::resizeUpdate() {
 void Map::render(const View& view) {
     for (auto& island : m_islands)
         island.render(view);
+
+    if (m_hasBottle) getEngineInstance()->render(m_bottle.getSprite(), view);
 
     auto viewPos{ view.getPosition() };
 
@@ -83,3 +93,69 @@ void Map::render(const View& view) {
 
 Sprite& Map::getWaterSprite() noexcept { return m_waterSprite; }
 Island& Map::getIsland(std::size_t id) noexcept { return m_islands.at(id); }
+
+void Map::interact(Ship& ship) {
+    if (!ship.isInteract())
+        for (auto& island : m_islands) {
+            island.interact(ship);
+            if (ship.isInteract()) {
+                m_interactIsland = &island;
+                break;
+            }
+        }
+
+    if (m_hasBottle) {
+        auto is{ intersect(m_bottle.getSprite(), ship.getSprite()).has_value() };
+        if (is) {
+            generateTreasure();
+            m_hasBottle = false;
+        }
+    }
+
+    Rectangle rect{ .xy{ -400.0f, -300.f }, .wh{ 8000.f, 8000.f } };
+    if (auto intersectRect{ intersect(rect, ship.getSprite().getRectangle()) }) {
+        if (!rect.contains(ship.getPosition())) {
+            ship.forceStop();
+            ship.setInteract(false);
+        }
+    }
+    m_shipRectangle = ship.getSprite().getRectangle();
+}
+
+void Map::interact(Player& player) {
+    m_interactIsland->interact(player);
+
+    if (player.isDigging()) {
+        auto is{ intersect(m_treasure.getTreasureSprite(), player.getSprite()) };
+        if (is && !m_hasBottle) {
+            if (!m_isTreasureUnearthed)
+                m_isTreasureUnearthed = true;
+            else {
+                m_isTreasureUnearthed = false;
+                generateBottle();
+                player.addMoney(1);
+            }
+        }
+        player.stopDig();
+    }
+
+    player.setNearShip(m_shipRectangle.contains(player.getPosition()));
+}
+
+bool Map::hasBottle() const noexcept { return m_hasBottle; }
+
+void Map::generateBottle() {
+    if (!m_hasBottle) {
+        m_hasBottle = true;
+        m_bottle.setPosition({ 125, 125 });
+    }
+}
+
+void Map::generateTreasure() {
+    auto pos{ m_islands.at(0).getPositions().at(0).second };
+    m_treasure.setPosition(pos);
+}
+
+Treasure& Map::getTreasure() noexcept { return m_treasure; }
+
+bool Map::isTreasureUnearthed() const noexcept { return m_isTreasureUnearthed; }

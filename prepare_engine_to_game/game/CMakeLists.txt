@@ -12,7 +12,13 @@ add_library(game SHARED
         src/island.cxx
         src/island.hxx
         src/map.cxx
-        src/map.hxx)
+        src/map.hxx
+        src/player.cxx
+        src/player.hxx
+        src/bottle.cxx
+        src/bottle.hxx
+        src/treasure.cxx
+        src/treasure.hxx)
 
 if (APPLE)
     target_link_libraries(game PRIVATE engine_lib)

@@ -6,7 +6,11 @@
 #include <vector>
 #include <view.hxx>
 
+#include "bottle.hxx"
 #include "island.hxx"
+#include "player.hxx"
+#include "ship.hxx"
+#include "treasure.hxx"
 
 namespace fs = std::filesystem;
 
@@ -15,16 +19,30 @@ class Map
 private:
     Sprite m_waterSprite;
     Sprite m_airSprite;
+
+    Bottle m_bottle;
+    Treasure m_treasure;
+
     Size m_textureSize{};
     Size m_mapSize{};
+
+    Rectangle m_shipRectangle{};
 
     std::vector<Island> m_islands{};
     std::vector<Position> m_waterPositions{};
     std::vector<Position> m_airPositions{};
 
+    bool m_hasBottle{};
+    bool m_isTreasureUnearthed{};
+
+    Island* m_interactIsland{};
+
 public:
     Map(const fs::path& waterTexturePath,
         const fs::path& airTexturePath,
+        const fs::path& bottleTexturePath,
+        const fs::path& treasureTexturePath,
+        const fs::path& xMarkTexturePath,
         Size textureSize,
         Size mapSize);
 
@@ -33,8 +51,17 @@ public:
     void resizeUpdate();
     void render(const View& view);
 
+    void interact(Ship& ship);
+    void interact(Player& player);
+
+    void generateBottle();
+    void generateTreasure();
+
     [[nodiscard]] const std::vector<Position>& getWaterPositions() const noexcept;
     [[nodiscard]] Sprite& getWaterSprite() noexcept;
+    [[nodiscard]] bool hasBottle() const noexcept;
+    [[nodiscard]] bool isTreasureUnearthed() const noexcept;
+    Treasure& getTreasure() noexcept;
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_MAP_HXX

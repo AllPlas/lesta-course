@@ -35,19 +35,10 @@ void Island::resizeUpdate() {
 }
 
 void Island::render(const View& view) {
-    auto viewPos{ view.getPosition() };
-    auto leftX{ viewPos.x - (getEngineInstance()->getWindowSize().width / 2.0f) };
-    auto leftY{ viewPos.y - (getEngineInstance()->getWindowSize().height / 2.0f) };
-
-    Rectangle viewRect{ .xy{ leftX, leftY },
-                        .wh = { static_cast<float>(getEngineInstance()->getWindowSize().width),
-                                static_cast<float>(getEngineInstance()->getWindowSize().height) } };
-
-    if (intersect(viewRect, m_rectangle)) {
+    if (isIslandOnView(view.getPosition())) {
         for (const auto& pos : m_positions) {
-            std::reference_wrapper<Sprite> sprite{ s_islandTiles->at(
-                s_charToIslandString->at(pos.first)) };
-            sprite.get().setPosition(pos.second);
+            auto& sprite{ s_islandTiles->at(s_charToIslandString->at(pos.first)) };
+            sprite.setPosition(pos.second);
             getEngineInstance()->render(sprite, view);
         }
     }
@@ -63,4 +54,50 @@ void Island::setIslandPattern(std::unordered_map<char, std::string>& pattern) {
 
 const std::vector<std::pair<char, Position>>& Island::getPositions() const noexcept {
     return m_positions;
+}
+
+void Island::interact(Ship& ship) {
+    if (isIslandOnView(ship.getSprite().getPosition())) {
+        if (intersect(*this, ship)) ship.forceStop();
+    }
+}
+
+void Island::interact(Player& player) {
+    if (isIslandOnView(player.getPosition())) {
+        if (!intersect(*this, player)) player.forceStop();
+    }
+}
+
+bool Island::isIslandOnView(Position position) const noexcept {
+    auto viewPos{ position };
+    auto leftX{ viewPos.x - (getEngineInstance()->getWindowSize().width / 2.0f) };
+    auto leftY{ viewPos.y - (getEngineInstance()->getWindowSize().height / 2.0f) };
+
+    Rectangle viewRect{ .xy{ leftX, leftY },
+                        .wh = { static_cast<float>(getEngineInstance()->getWindowSize().width),
+                                static_cast<float>(getEngineInstance()->getWindowSize().height) } };
+
+    return intersect(viewRect, m_rectangle).has_value();
+}
+
+bool intersect(const Island& island, const Ship& ship) {
+    for (const auto& pos : island.getPositions()) {
+        Rectangle rectangle{ .xy = { pos.second.x - island.m_size.width / 2.0f,
+                                     pos.second.y - island.m_size.height / 2.0f },
+                             .wh = island.m_size };
+        if (auto result{ rectangle.contains(ship.getPosition()) }) return true;
+    }
+
+    return false;
+}
+
+bool intersect(const Island& island, const Player& player) {
+    for (const auto& pos : island.getPositions()) {
+        Rectangle rectangle{ .xy = { pos.second.x - island.m_size.width / 2.0f,
+                                     pos.second.y - island.m_size.height / 2.0f },
+                             .wh = island.m_size };
+        if (auto result{ rectangle.contains(player.getPosition()) }) return true;
+    }
+
+    return false;
 }
