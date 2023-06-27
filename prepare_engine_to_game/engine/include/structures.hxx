@@ -60,6 +60,9 @@ struct Rectangle
     Size wh{};
 
     [[nodiscard]] bool contains(Position position) const noexcept;
+    void rotate(const Angle& angle) noexcept;
+
+    auto operator<=>(const Rectangle&) const = default;
 };
 
 std::optional<LineSegment> intersect(LineSegment l1, LineSegment l2);
