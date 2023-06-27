@@ -23,9 +23,12 @@ public:
 
 private:
     Position m_position{};
+    Position m_lastPosition{};
+
     bool m_isMove{};
     bool m_isRotateLeft{};
     bool m_isRotateRight{};
+    bool m_isInteract{};
 
     Config m_config{};
     float m_currentMoveSpeed{};
@@ -44,6 +47,9 @@ public:
     void stopRotateLeft();
     void stopRotateRight();
 
+    void forceStop();
+    void setInteract(bool isInteract);
+
     Config& config() noexcept;
 
     void resizeUpdate();
@@ -52,6 +58,8 @@ public:
     [[nodiscard]] const Sprite& getSprite() const noexcept;
     [[nodiscard]] float getMoveSpeed() const noexcept;
     [[nodiscard]] float getRotateSpeed() const noexcept;
+    [[nodiscard]] bool isInteract() const noexcept;
+    [[nodiscard]] Position getPosition() const noexcept;
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_SHIP_HXX

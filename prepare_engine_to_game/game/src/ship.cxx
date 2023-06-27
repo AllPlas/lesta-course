@@ -22,6 +22,7 @@ void Ship::update(std::chrono::microseconds timeElapsed) {
     if (m_isMove) {
         m_currentMoveSpeed += m_config.moveAcceleration * timeElapsedInSec;
         m_currentMoveSpeed = std::min(m_currentMoveSpeed, m_config.moveMaxSpeed);
+        m_isInteract = false;
     }
     else {
         m_currentMoveSpeed -= m_config.moveDeceleration * timeElapsedInSec;
@@ -67,6 +68,8 @@ void Ship::update(std::chrono::microseconds timeElapsed) {
     float newY = m_position.y + deltaX * std::sin(m_sprite.getRotate().getInRadians()) +
                  deltaY * std::cos(m_sprite.getRotate().getInRadians());
 
+    m_lastPosition = m_position;
+
     m_position.x = newX;
     m_position.y = newY;
 
@@ -84,4 +87,18 @@ float Ship::getRotateSpeed() const noexcept { return m_currentRotateSpeed; }
 void Ship::resizeUpdate() {
     m_sprite.updateWindowSize();
     m_sprite.checkAspect({ 800, 600 });
+    m_sprite.setPosition(m_position);
 }
+
+void Ship::forceStop() {
+    m_currentMoveSpeed = 0;
+    m_isMove = false;
+    m_isInteract = true;
+    m_position = m_lastPosition;
+    m_sprite.setPosition(m_position);
+}
+
+bool Ship::isInteract() const noexcept { return m_isInteract; }
+Position Ship::getPosition() const noexcept { return m_position; }
+
+void Ship::setInteract(bool isInteract) { m_isInteract = isInteract; }
