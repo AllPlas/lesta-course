@@ -2,53 +2,32 @@
 
 #include "engine.hxx"
 
-Sprite::Sprite(const fs::path& texturePath, Size size)
+Sprite::Sprite(Size size)
     : m_size{ size }
     , m_windowWidth{ getEngineInstance()->getWindowSize().width }
     , m_windowHeight{ getEngineInstance()->getWindowSize().height } {
-    m_texture.load(texturePath);
+    initialize();
+}
 
-    m_moveMatrix[0][0] = 1.0f;
-    m_moveMatrix[1][1] = 1.0f;
-    m_moveMatrix[2][2] = 1.0f;
+Sprite::Sprite(const fs::path& texturePath)
+    : m_hasTexture{ true }
+    , m_texture{ new Texture{} }
+    , m_windowWidth{ getEngineInstance()->getWindowSize().width }
+    , m_windowHeight{ getEngineInstance()->getWindowSize().height } {
+    m_texture->load(texturePath);
+    m_size.width = m_texture->getWidth();
+    m_size.height = m_texture->getHeight();
+    initialize();
+}
 
-    m_scaleMatrix[0][0] = 1.0f;
-    m_scaleMatrix[1][1] = 1.0f;
-    m_scaleMatrix[2][2] = 1.0f;
-
-    m_aspectMatrix[0][0] = 1.0f;
-    m_aspectMatrix[1][1] = 1.0f;
-    m_aspectMatrix[2][2] = 1.0f;
-
-    m_rotationMatrix[0][0] = 1.0f;
-    m_rotationMatrix[1][1] = 1.0f;
-    m_rotationMatrix[2][2] = 1.0f;
-
-    m_vertices.push_back({ (-size.width / 2) / (m_windowWidth / 2.0f),
-                           (size.height / 2) / (m_windowHeight / 2.0f),
-                           0.0,
-                           0.0,
-                           0 });
-
-    m_vertices.push_back({ (size.width / 2) / (m_windowWidth / 2.0f),
-                           (size.height / 2) / (m_windowHeight / 2.0f),
-                           1.0,
-                           0.0,
-                           0 });
-
-    m_vertices.push_back({ (size.width / 2) / (m_windowWidth / 2.0f),
-                           (-size.height / 2) / (m_windowHeight / 2.0f),
-                           1.0,
-                           1.0,
-                           0 });
-
-    m_vertices.push_back({ (-size.width / 2) / (m_windowWidth / 2.0f),
-                           (-size.height / 2) / (m_windowHeight / 2.0f),
-                           0.0,
-                           1.0,
-                           0 });
-
-    m_indices = { 0, 1, 2, 0, 2, 3 };
+Sprite::Sprite(const fs::path& texturePath, Size size)
+    : m_size{ size }
+    , m_hasTexture{ true }
+    , m_texture{ new Texture{} }
+    , m_windowWidth{ getEngineInstance()->getWindowSize().width }
+    , m_windowHeight{ getEngineInstance()->getWindowSize().height } {
+    m_texture->load(texturePath);
+    initialize();
 }
 
 void Sprite::checkAspect(Size size) {
@@ -112,7 +91,7 @@ const std::vector<Vertex2>& Sprite::getVertices() const noexcept { return m_vert
 
 const std::vector<uint16_t>& Sprite::getIndices() const noexcept { return m_indices; }
 
-const Texture& Sprite::getTexture() const noexcept { return m_texture; }
+const Texture& Sprite::getTexture() const noexcept { return *m_texture; }
 
 void Sprite::updateWindowSize() {
     m_windowWidth = getEngineInstance()->getWindowSize().width;
@@ -123,6 +102,59 @@ Rectangle Sprite::getRectangle() const noexcept {
     return Rectangle{ .xy = { getPosition().x - getSize().width / 2.0f,
                               getPosition().y - getSize().height / 2.0f },
                       .wh = { getSize() } };
+}
+
+Sprite::~Sprite() {
+    if (m_hasTexture) delete m_texture;
+}
+
+void Sprite::initialize() {
+    m_moveMatrix[0][0] = 1.0f;
+    m_moveMatrix[1][1] = 1.0f;
+    m_moveMatrix[2][2] = 1.0f;
+
+    m_scaleMatrix[0][0] = 1.0f;
+    m_scaleMatrix[1][1] = 1.0f;
+    m_scaleMatrix[2][2] = 1.0f;
+
+    m_aspectMatrix[0][0] = 1.0f;
+    m_aspectMatrix[1][1] = 1.0f;
+    m_aspectMatrix[2][2] = 1.0f;
+
+    m_rotationMatrix[0][0] = 1.0f;
+    m_rotationMatrix[1][1] = 1.0f;
+    m_rotationMatrix[2][2] = 1.0f;
+
+    m_vertices.push_back({ (-m_size.width / 2) / (m_windowWidth / 2.0f),
+                           (m_size.height / 2) / (m_windowHeight / 2.0f),
+                           0.0,
+                           0.0,
+                           0 });
+
+    m_vertices.push_back({ (m_size.width / 2) / (m_windowWidth / 2.0f),
+                           (m_size.height / 2) / (m_windowHeight / 2.0f),
+                           1.0,
+                           0.0,
+                           0 });
+
+    m_vertices.push_back({ (m_size.width / 2) / (m_windowWidth / 2.0f),
+                           (-m_size.height / 2) / (m_windowHeight / 2.0f),
+                           1.0,
+                           1.0,
+                           0 });
+
+    m_vertices.push_back({ (-m_size.width / 2) / (m_windowWidth / 2.0f),
+                           (-m_size.height / 2) / (m_windowHeight / 2.0f),
+                           0.0,
+                           1.0,
+                           0 });
+
+    m_indices = { 0, 1, 2, 0, 2, 3 };
+}
+
+void Sprite::setTexture(Texture& texture) {
+    if (m_hasTexture) throw std::runtime_error{ "Error : setTexture : The sprite has own texture" };
+    m_texture = &texture;
 }
 
 std::optional<Rectangle> intersect(const Sprite& s1, const Sprite& s2) {
