@@ -220,6 +220,11 @@ public:
     virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
                         const IndexBuffer<std::uint32_t>& indexBuffer,
                         const Texture& texture,
+                        const glm::mat3& matrix) = 0;
+    virtual void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture,
+                        const glm::mat3& matrix,
                         const View& view) = 0;
     virtual void render(const Sprite& sprite) = 0;
     virtual void render(const Sprite& sprite, const View& view) = 0;

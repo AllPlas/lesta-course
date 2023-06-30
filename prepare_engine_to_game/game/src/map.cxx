@@ -33,8 +33,6 @@ Map::Map(const fs::path& waterTexturePath,
 
         auto normalizedXLeftPos{ (leftXpos / (800.f * 0.5f)) - 1.0f };
         auto normalizedXRightPos{ (rightXpos / (800.f * 0.5f)) - 1.0f };
-        //  auto normalizedYTopPos{ 1.0f - (topYpos / (600.f * 0.5f)) };
-        //  auto normalizedYBottomPos{ 1.0f - (bottomYpos / (600.f * 0.5f)) };
         auto normalizedYTopPos{ (topYpos / (600.f * 0.5f)) - 1.0f };
         auto normalizedYBottomPos{ (bottomYpos / (600.f * 0.5f)) - 1.0f };
 
@@ -117,7 +115,9 @@ void Map::render(const View& view) {
 
     if (m_hasBottle) getEngineInstance()->render(m_bottle.getSprite(), view);
 
-    getEngineInstance()->render(*m_gridP, *m_indGridP, m_waterSprite.getTexture(), view);
+    m_waterSprite.setPosition({ 0, 0 });
+    getEngineInstance()->render(
+        *m_gridP, *m_indGridP, m_waterSprite.getTexture(), m_waterSprite.getResultMatrix(), view);
 
     //    auto viewPos{ view.getPosition() };
     //

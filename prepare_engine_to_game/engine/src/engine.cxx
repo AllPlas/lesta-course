@@ -747,8 +747,6 @@ public:
                 const IndexBuffer<std::uint32_t>& indexBuffer,
                 const Texture& texture) override {
         m_program.get().use();
-        glm::mat3 mat{ 1.0f };
-        m_program.get().setUniform("matrix", mat);
         m_program.get().setUniform("texSampler", texture);
 
         texture.bind();
@@ -795,12 +793,22 @@ public:
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint32_t>& indexBuffer,
                 const Texture& texture,
+                const glm::mat3& matrix) override {
+        m_program.get().use();
+        m_program.get().setUniform("matrix", matrix);
+        render(vertexBuffer, indexBuffer, texture);
+    }
+
+    void render(const VertexBuffer<Vertex2>& vertexBuffer,
+                const IndexBuffer<std::uint32_t>& indexBuffer,
+                const Texture& texture,
+                const glm::mat3& matrix,
                 const View& view) override {
         ShaderProgram& lastProgram{ m_program.get() };
         m_program = m_shaderProgramWithView;
         m_program.get().use();
         m_program.get().setUniform("viewMatrix", view.getViewMatrix());
-        render(vertexBuffer, indexBuffer, texture);
+        render(vertexBuffer, indexBuffer, texture, matrix);
         m_program = lastProgram;
     }
 
