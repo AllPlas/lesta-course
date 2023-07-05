@@ -2,16 +2,27 @@
 #define ENGINE_PREPARE_TO_GAME_STRUCTURES_HXX
 
 #include <cmath>
-#include <compare>
-#include <numbers>
 #include <optional>
+
+#ifndef __ANDROID__
+#    include <compare>
+#    include <numbers>
+#else
+namespace std::numbers {
+constexpr double pi = 3.14159265358979323846;
+}
+#endif
 
 struct Position
 {
     float x{};
     float y{};
 
-    auto operator<=>(const Position& position) const = default;
+#ifndef __ANDROID__
+    auto operator<=> (const Position& position) const = default;
+#else
+    bool operator==(const Position& position) const = default;
+#endif
 };
 
 struct Size
@@ -19,7 +30,11 @@ struct Size
     float width{};
     float height{};
 
-    auto operator<=>(const Size& size) const = default;
+#ifndef __ANDROID__
+    auto operator<=> (const Size& size) const = default;
+#else
+    bool operator==(const Size& size) const = default;
+#endif
 };
 
 struct Scale
@@ -27,7 +42,11 @@ struct Scale
     float x{ 1.0f };
     float y{ 1.0f };
 
-    auto operator<=>(const Scale& scale) const = default;
+#ifndef __ANDROID__
+    auto operator<=> (const Scale& scale) const = default;
+#else
+    bool operator==(const Scale& scale) const = default;
+#endif
 };
 
 class Angle
@@ -44,7 +63,11 @@ public:
     [[nodiscard]] float getInRadians() const noexcept;
     [[nodiscard]] float getInDegrees() const noexcept;
 
-    auto operator<=>(const Angle& angle) const = default;
+#ifndef __ANDROID__
+    auto operator<=> (const Angle& angle) const = default;
+#else
+    bool operator==(const Angle& angle) const = default;
+#endif
 };
 
 struct LineSegment
@@ -62,7 +85,11 @@ struct Rectangle
     [[nodiscard]] bool contains(Position position) const noexcept;
     void rotate(const Angle& angle) noexcept;
 
-    auto operator<=>(const Rectangle&) const = default;
+#ifndef __ANDROID__
+    auto operator<=> (const Rectangle&) const = default;
+#else
+    bool operator==(const Rectangle&) const = default;
+#endif
 };
 
 std::optional<LineSegment> intersect(LineSegment l1, LineSegment l2);
