@@ -1197,7 +1197,7 @@ int main(int argc, char* argv[]) {
     try {
         createEngine();
         auto& engine{ getEngineInstance() };
-        if (!engine.initialize("{}").empty())
+        if (!engine->initialize("{}").empty())
             throw std::runtime_error{ "Error: main : initializing engine."s };
 
         std::string libName{ "libgame.so" };
@@ -1219,11 +1219,12 @@ int main(int argc, char* argv[]) {
         using DestroyGame = decltype(&destroyGame);
         auto destroyGameLinked{ reinterpret_cast<DestroyGame>(destroyGameFuncPtr) };
 
-        std::unique_ptr<IGame, std::function<void(IGame * game)>> game{ createGameLinked(&engine),
-                                                                        [destroyGameLinked](
-                                                                            IGame* game) {
-                                                                            destroyGameLinked(game);
-                                                                        } };
+        std::unique_ptr<IGame, std::function<void(IGame * game)>> game{
+            createGameLinked(engine.get()),
+            [destroyGameLinked](IGame* game) {
+                destroyGameLinked(game);
+            }
+        };
 
         game->initialize();
 
