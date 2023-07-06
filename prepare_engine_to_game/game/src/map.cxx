@@ -26,10 +26,10 @@ Map::Map(const fs::path& waterTexturePath,
     }
 
     for (auto pos : m_waterPositions) {
-        auto leftXpos{ (pos.x - xOffset) - textureSize.width / 2.0f };
-        auto rightXpos{ (pos.x - xOffset) + textureSize.width / 2.0f };
-        auto topYpos{ (pos.y - yOffset) + textureSize.height / 2.0f };
-        auto bottomYpos{ (pos.y - yOffset) - textureSize.height / 2.0f };
+        auto leftXpos{ (pos.x + 400) - textureSize.width / 2.0f };
+        auto rightXpos{ (pos.x + 400) + textureSize.width / 2.0f };
+        auto topYpos{ (pos.y + 300) + textureSize.height / 2.0f };
+        auto bottomYpos{ (pos.y + 300) - textureSize.height / 2.0f };
 
         auto normalizedXLeftPos{ (leftXpos / (800.f * 0.5f)) - 1.0f };
         auto normalizedXRightPos{ (rightXpos / (800.f * 0.5f)) - 1.0f };
@@ -78,8 +78,16 @@ Map::Map(const fs::path& waterTexturePath,
         m_indGrid.push_back(fourthIdx);
     }
 
-    m_gridP = new VertexBuffer<Vertex2>{ m_grid };
-    m_indGridP = new IndexBuffer{ m_indGrid };
+    m_gridPtr = std::make_unique<VertexBuffer<Vertex2>>(m_grid);
+    m_idxGridPtr = std::make_unique<IndexBuffer<std::uint32_t>>(m_indGrid);
+
+    std::vector<Vertex2> v2{};
+    std::vector<std::uint32_t> u32{};
+    for (auto& buffer : m_islandVertexBuffers)
+        buffer = std::make_unique<VertexBuffer<Vertex2>>(v2);
+
+    for (auto& buffer : m_islandIndexBuffers)
+        buffer = std::make_unique<IndexBuffer<std::uint32_t>>(u32);
 }
 
 void Map::addIsland(Position position, const std::vector<std::string>& pattern) {
@@ -91,6 +99,69 @@ void Map::addIsland(Position position, const std::vector<std::string>& pattern) 
     for (const auto& pos : m_islands.back().getPositions()) {
         auto found{ std::find(m_waterPositions.begin(), m_waterPositions.end(), pos.second) };
         if (found != m_waterPositions.end()) m_waterPositions.erase(found);
+
+        auto leftXpos{ pos.second.x + 400 - m_textureSize.width / 2.0f };
+        auto rightXpos{ pos.second.x + 400 + m_textureSize.width / 2.0f };
+        auto topYpos{ pos.second.y + 300 + m_textureSize.height / 2.0f };
+        auto bottomYpos{ pos.second.y + 300 - m_textureSize.height / 2.0f };
+
+        auto normalizedXLeftPos{ (leftXpos / (800.f * 0.5f)) - 1.0f };
+        auto normalizedXRightPos{ (rightXpos / (800.f * 0.5f)) - 1.0f };
+        auto normalizedYTopPos{ (topYpos / (600.f * 0.5f)) - 1.0f };
+        auto normalizedYBottomPos{ (bottomYpos / (600.f * 0.5f)) - 1.0f };
+
+        Vertex2 v1{};
+        v1.x = normalizedXLeftPos;
+        v1.y = normalizedYTopPos;
+        v1.texX = 0.0;
+        v1.texY = 0.0;
+
+        Vertex2 v2{};
+        v2.x = normalizedXRightPos;
+        v2.y = normalizedYTopPos;
+        v2.texX = 1.0;
+        v2.texY = 0.0;
+
+        Vertex2 v3{};
+        v3.x = normalizedXRightPos;
+        v3.y = normalizedYBottomPos;
+        v3.texX = 1.0;
+        v3.texY = 1.0;
+
+        Vertex2 v4{};
+        v4.x = normalizedXLeftPos;
+        v4.y = normalizedYBottomPos;
+        v4.texX = 0.0;
+        v4.texY = 1.0;
+
+        std::size_t idx{};
+        switch (pos.first) {
+        case 'S':
+            idx = 0;
+            break;
+        case 'B':
+            idx = 1;
+            break;
+        case 'G':
+            idx = 2;
+            break;
+        case 'R':
+            idx = 3;
+            break;
+        case 'P':
+            idx = 4;
+            break;
+        }
+        auto& vBuffer{ m_islandVertexBuffers.at(idx) };
+        auto& iBuffer{ m_islandIndexBuffers.at(idx) };
+        auto size{ static_cast<std::uint32_t>(vBuffer->size()) };
+
+        std::vector<Vertex2> vert{ v1, v2, v3, v4 };
+        vBuffer->addData(vert);
+
+        std::vector<std::uint32_t> indices{ size + 0, size + 1, size + 2,
+                                            size + 0, size + 2, size + 3 };
+        iBuffer->addData(indices);
     }
 }
 
@@ -110,14 +181,47 @@ void Map::resizeUpdate() {
 }
 
 void Map::render(const View& view) {
-    for (auto& island : m_islands)
-        island.render(view);
+    //    for (auto& island : m_islands)
+    //        island.render(view);
+
+    for (std::size_t i{}; i < 5; ++i) {
+        char isl{};
+        switch (i) {
+        case 0:
+            isl = 'S';
+            break;
+        case 1:
+            isl = 'B';
+            break;
+        case 2:
+            isl = 'G';
+            break;
+        case 3:
+            isl = 'R';
+            break;
+        case 4:
+            isl = 'P';
+            break;
+        }
+
+        auto& sprite{ Island::getIslandTiles()->at(Island::getChatToIsland()->at(isl)) };
+        sprite.setPosition({ 0, 0 });
+
+        getEngineInstance()->render(*m_islandVertexBuffers.at(i),
+                                    *m_islandIndexBuffers.at(i),
+                                    sprite.getTexture(),
+                                    sprite.getResultMatrix(),
+                                    view);
+    }
 
     if (m_hasBottle) getEngineInstance()->render(m_bottle.getSprite(), view);
 
     m_waterSprite.setPosition({ 0, 0 });
-    getEngineInstance()->render(
-        *m_gridP, *m_indGridP, m_waterSprite.getTexture(), m_waterSprite.getResultMatrix(), view);
+    getEngineInstance()->render(*m_gridPtr,
+                                *m_idxGridPtr,
+                                m_waterSprite.getTexture(),
+                                m_waterSprite.getResultMatrix(),
+                                view);
 
     //    auto viewPos{ view.getPosition() };
     //

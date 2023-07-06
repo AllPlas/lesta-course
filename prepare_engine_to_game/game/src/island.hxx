@@ -20,7 +20,7 @@ private:
     std::vector<std::string> m_pattern{};
     std::vector<std::pair<char, Position>> m_positions{};
 
-    inline static  std::unordered_map<std::string, Sprite>* s_islandTiles{};
+    inline static std::unordered_map<std::string, Sprite>* s_islandTiles{};
     inline static const std::unordered_map<char, std::string>* s_charToIslandString{};
 
 public:
@@ -37,6 +37,9 @@ public:
 
     [[nodiscard]] const std::vector<std::pair<char, Position>>& getPositions() const noexcept;
     [[nodiscard]] bool isIslandOnView(Position position) const noexcept;
+
+    static auto& getIslandTiles() { return s_islandTiles; }
+    static auto& getChatToIsland() { return s_charToIslandString; }
 
     friend bool intersect(const Island& island, const Ship& ship);
     friend bool intersect(const Island& island, const Player& player);

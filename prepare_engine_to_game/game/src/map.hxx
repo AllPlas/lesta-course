@@ -1,7 +1,9 @@
 #ifndef ENGINE_PREPARE_TO_GAME_MAP_HXX
 #define ENGINE_PREPARE_TO_GAME_MAP_HXX
 
+#include <array>
 #include <filesystem>
+#include <memory>
 #include <sprite.hxx>
 #include <vector>
 #include <view.hxx>
@@ -35,8 +37,11 @@ private:
     std::vector<Vertex2> m_grid{};
     std::vector<std::uint32_t> m_indGrid{};
 
-    VertexBuffer<Vertex2>* m_gridP{};
-    IndexBuffer<std::uint32_t>* m_indGridP{};
+    std::unique_ptr<VertexBuffer<Vertex2>> m_gridPtr{};
+    std::unique_ptr<IndexBuffer<std::uint32_t>> m_idxGridPtr{};
+
+    std::array<std::unique_ptr<VertexBuffer<Vertex2>>, 5> m_islandVertexBuffers{};
+    std::array<std::unique_ptr<IndexBuffer<std::uint32_t>>, 5> m_islandIndexBuffers{};
 
     bool m_hasBottle{};
     bool m_isTreasureUnearthed{};
