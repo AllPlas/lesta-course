@@ -541,6 +541,7 @@ static void ImGui_ImplSDL3_UpdateMouseData() {
     SDL_Window* focused_window = SDL_GetKeyboardFocus();
     const bool is_app_focused = (bd->Window == focused_window);
 #else
+    SDL_Window* focused_window = bd->Window;
     const bool is_app_focused = (SDL_GetWindowFlags(bd->Window) & SDL_WINDOW_INPUT_FOCUS) !=
                                 0; // SDL 2.0.3 and non-windowed systems: single-viewport only
 #endif

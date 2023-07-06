@@ -6,12 +6,43 @@
 using namespace std::literals;
 namespace fs = std::filesystem;
 
+#ifdef __ANDROID__
+#    include <vector>
+
+class Image
+{
+private:
+    fs::path m_filePath{};
+    unsigned char* m_image{};
+    int m_height{};
+    int m_width{};
+
+public:
+    Image() = default;
+    Image(const Image& image);
+    Image& operator=(const Image& image);
+
+    ~Image();
+
+    void load(const fs::path& path);
+    [[nodiscard]] const unsigned char* getPixels() const noexcept;
+    [[nodiscard]] int getWidth() const noexcept;
+    [[nodiscard]] int getHeight() const noexcept;
+
+private:
+    static std::vector<char> readFile(const fs::path& path);
+};
+#endif
+
 class Texture final
 {
 private:
     std::uint32_t m_texture{};
     std::size_t m_width{};
     std::size_t m_height{};
+#ifdef __ANDROID__
+    Image m_image{};
+#endif
 
     bool m_copied{};
 
