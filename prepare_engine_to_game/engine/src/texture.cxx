@@ -94,7 +94,8 @@ Texture& Texture::operator=(Texture& texture) {
 #ifdef __ANDROID__
 #    include <SDL3/SDL.h>
 
-#    include "stb_image.hxx"
+#    define STB_IMAGE_IMPLEMENTATION
+#    include "stb_image.h"
 
 Image::Image(const Image& image) : m_filePath{ image.m_filePath } {
     if (!m_filePath.empty()) load(image.m_filePath);
