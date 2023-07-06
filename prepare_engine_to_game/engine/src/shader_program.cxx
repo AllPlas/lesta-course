@@ -10,6 +10,7 @@
 
 using namespace std::literals;
 
+#ifndef __ANDROID__
 static std::string readFile(const fs::path& path) {
     std::ifstream in{ path };
     if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
@@ -25,6 +26,32 @@ static std::string readFile(const fs::path& path) {
 
     return result;
 }
+#else
+#    include <SDL3/SDL.h>
+
+static std::string readFile(const fs::path& path) {
+    SDL_RWops* io = SDL_RWFromFile(path.c_str(), "rb");
+    if (nullptr == io) { throw std::runtime_error("can't load file: " + std::string(path)); }
+
+    Sint64 file_size = io->size(io);
+    if (-1 == file_size) {
+        throw std::runtime_error("can't determine size of file: " + std::string(path));
+    }
+    const size_t size = static_cast<size_t>(file_size);
+    std::vector<char> mem(size);
+
+    const size_t num_read_objects = io->read(io, mem.data(), size);
+    if (num_read_objects != size) {
+        throw std::runtime_error("can't read all content from file: " + std::string(path));
+    }
+
+    if (0 != io->close(io)) {
+        throw std::runtime_error("failed to close file: " + std::string(path));
+    }
+
+    return { mem.begin(), mem.end() };
+}
+#endif
 
 ShaderProgram::ShaderProgram(const fs::path& vertPath, const fs::path& fragPath) {
     recompileShaders(vertPath, fragPath);
