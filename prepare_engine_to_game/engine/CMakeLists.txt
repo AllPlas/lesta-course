@@ -5,12 +5,15 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(SDL3 REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(Boost REQUIRED)
-find_package(PNG REQUIRED)
-find_package(glm REQUIRED)
-find_package(ImGui REQUIRED)
+if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
+    find_package(SDL3 REQUIRED)
+    find_package(OpenGL REQUIRED)
+    find_package(Boost REQUIRED)
+    find_package(PNG REQUIRED)
+    find_package(glm REQUIRED)
+    find_package(ImGui REQUIRED)
+
+endif ()
 
 set(Sources
         src/engine.cxx
@@ -30,7 +33,22 @@ set(Sources
         src/view.cxx
         src/structures.cxx)
 
-if (APPLE)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
+    add_subdirectory(${SDL3_SRC_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/SDL_${ANDROID_ABI})
+
+    find_package(glm REQUIRED)
+    find_package(ImGui REQUIRED)
+
+    add_library(engine SHARED ${Sources})
+
+    target_include_directories(engine PUBLIC include)
+    target_include_directories(engine PRIVATE glad/include)
+    target_link_libraries(engine PRIVATE SDL3::SDL3-shared android log EGL GLESv3)
+    target_link_libraries(engine PUBLIC glm::glm imgui::imgui)
+
+elseif (APPLE)
     add_library(engine_lib SHARED ${Sources})
 
     target_include_directories(engine_lib PUBLIC include)
