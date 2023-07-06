@@ -511,8 +511,6 @@ static std::string readFile(const fs::path& path) {
     return result;
 }
 
-static bool g_alreadyExist{ false };
-
 class EngineImpl final : public IEngine
 {
 private:
@@ -534,7 +532,7 @@ public:
 
     std::string initialize(std::string_view config) override {
 #ifdef __ANDROID__
-        if (g_alreadyExist) return "";
+        if (m_window) return "";
 #endif
 
         initSDL();
@@ -711,7 +709,7 @@ public:
             HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
             HotReloadProvider::getInstance().getPath("fragment_shader"));
 #else
-        m_shaderProgram.recompileShaders.recompileShaders(
+        m_shaderProgram.recompileShaders(
             "data/shaders/vertex_shader_without_view.vert", "data/shaders/fragment_shader.frag");
 
         m_shaderProgramWithView.recompileShaders("data/shaders/vertex_shader_with_view.vert",
@@ -980,6 +978,7 @@ private:
     }
 };
 
+static bool g_alreadyExist{ false };
 static EnginePtr g_engine{};
 
 void createEngine() {
@@ -1195,6 +1194,7 @@ int main(int argc, const char* argv[]) {
 #else
 int main(int argc, char* argv[]) {
     try {
+        createEngine();
         auto& engine{ getEngineInstance() };
         if (!engine.initialize("{}").empty())
             throw std::runtime_error{ "Error: main : initializing engine."s };
