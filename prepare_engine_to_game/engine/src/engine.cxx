@@ -3,7 +3,6 @@
 //
 #include "engine.hxx"
 
-#include <boost/json.hpp>
 #include <glm/glm.hpp>
 
 #include <SDL3/SDL.h>
@@ -23,7 +22,10 @@
 #include "opengl_check.hxx"
 
 #ifndef __ANDROID__
+#    include <boost/json.hpp>
 #    include <boost/program_options.hpp>
+
+namespace json = boost::json;
 #else
 #    include <GLES3/gl3.h>
 #    include <SDL3/SDL_main.h>
@@ -32,7 +34,6 @@
 
 using namespace std::literals;
 namespace fs = std::filesystem;
-namespace json = boost::json;
 
 static const std::unordered_map<Event::Type, std::string_view> s_eventTypeToStringView{
     { Event::Type::key_down, "key_down" },
@@ -709,8 +710,8 @@ public:
             HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
             HotReloadProvider::getInstance().getPath("fragment_shader"));
 #else
-        m_shaderProgram.recompileShaders(
-            "data/shaders/vertex_shader_without_view.vert", "data/shaders/fragment_shader.frag");
+        m_shaderProgram.recompileShaders("data/shaders/vertex_shader_without_view.vert",
+                                         "data/shaders/fragment_shader.frag");
 
         m_shaderProgramWithView.recompileShaders("data/shaders/vertex_shader_with_view.vert",
                                                  "data/shaders/fragment_shader.frag");
