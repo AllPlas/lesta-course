@@ -4,9 +4,7 @@
 #include "engine.hxx"
 
 #include <boost/json.hpp>
-#include <boost/program_options.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <SDL3/SDL.h>
 #include <cassert>
@@ -23,6 +21,14 @@
 #include "imgui_impl_opengl3.hxx"
 #include "imgui_impl_sdl3.hxx"
 #include "opengl_check.hxx"
+
+#ifndef __ANDROID__
+#    include <boost/program_options.hpp>
+#else
+#    include <GLES3/gl3.h>
+#    include <SDL3/SDL_main.h>
+#    include <android/log.h>
+#endif
 
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -505,6 +511,8 @@ static std::string readFile(const fs::path& path) {
     return result;
 }
 
+static bool g_alreadyExist{ false };
+
 class EngineImpl final : public IEngine
 {
 private:
@@ -525,11 +533,17 @@ public:
     ~EngineImpl() override = default;
 
     std::string initialize(std::string_view config) override {
+#ifdef __ANDROID__
+        if (g_alreadyExist) return "";
+#endif
+
         initSDL();
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
                             SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+
+#ifndef __ANDROID__
 
         auto jsonValue(json::parse(config));
 
@@ -568,6 +582,11 @@ public:
         SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         SDL_SetWindowMinimumSize(m_window, static_cast<int>(minWidth), static_cast<int>(minHeight));
         SDL_ShowWindow(m_window);
+
+#else
+        const SDL_DisplayMode* displayMode{ SDL_GetCurrentDisplayMode(1) };
+        m_window = createWindow("android", displayMode->w, displayMode->h, SDL_WINDOW_OPENGL);
+#endif
 
         createGLContext();
 
@@ -683,6 +702,7 @@ public:
     }
 
     void recompileShaders() override {
+#ifndef __ANDROID__
         m_shaderProgram.recompileShaders(
             HotReloadProvider::getInstance().getPath("vertex_shader_without_view"),
             HotReloadProvider::getInstance().getPath("fragment_shader"));
@@ -690,6 +710,13 @@ public:
         m_shaderProgramWithView.recompileShaders(
             HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
             HotReloadProvider::getInstance().getPath("fragment_shader"));
+#else
+        m_shaderProgram.recompileShaders.recompileShaders(
+            "data/shaders/vertex_shader_without_view.vert", "data/shaders/fragment_shader.frag");
+
+        m_shaderProgramWithView.recompileShaders("data/shaders/vertex_shader_with_view.vert",
+                                                 "data/shaders/fragment_shader.frag");
+#endif
 
         m_program.get().use();
     }
@@ -953,27 +980,27 @@ private:
     }
 };
 
-static bool s_alreadyExist{ false };
 static EnginePtr g_engine{};
 
 void createEngine() {
-    if (s_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
-    s_alreadyExist = true;
+    if (g_alreadyExist) throw std::runtime_error{ "Error : engine already exist"s };
+    g_alreadyExist = true;
     g_engine = { new EngineImpl{}, destroyEngine };
 }
 
 void destroyEngine(IEngine* e) {
-    if (!s_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
+    if (!g_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
     if (e == nullptr) throw std::runtime_error{ "Error : nullptr"s };
     delete e;
-    s_alreadyExist = false;
+    g_alreadyExist = false;
 }
 
 const EnginePtr& getEngineInstance() {
-    if (!s_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
+    if (!g_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
     return g_engine;
 }
 
+#ifndef __ANDROID__
 static std::unique_ptr<IGame, std::function<void(IGame* game)>>
 reloadGame(std::unique_ptr<IGame, std::function<void(IGame* game)>> oldGame,
            std::string_view libraryName,
@@ -1165,3 +1192,82 @@ int main(int argc, const char* argv[]) {
 
     return EXIT_FAILURE;
 }
+#else
+int main(int argc, char* argv[]) {
+    try {
+        auto& engine{ getEngineInstance() };
+        if (!engine.initialize("{}").empty())
+            throw std::runtime_error{ "Error: main : initializing engine."s };
+
+        std::string libName{ "libgame.so" };
+
+        auto gameHandle{ SDL_LoadObject(libName.c_str()) };
+        if (gameHandle == nullptr) throw std::runtime_error{ "Error: main : load game."s };
+
+        auto createGameFuncPtr{ SDL_LoadFunction(gameHandle, "createGame") };
+        if (createGameFuncPtr == nullptr)
+            throw std::runtime_error{ "Error: main : load function createGame."s };
+
+        using CreateGame = decltype(&createGame);
+        auto createGameLinked{ reinterpret_cast<CreateGame>(createGameFuncPtr) };
+
+        auto destroyGameFuncPtr{ SDL_LoadFunction(gameHandle, "destroyGame") };
+        if (destroyGameFuncPtr == nullptr)
+            throw std::runtime_error{ "Error: main : load function destroyGame."s };
+
+        using DestroyGame = decltype(&destroyGame);
+        auto destroyGameLinked{ reinterpret_cast<DestroyGame>(destroyGameFuncPtr) };
+
+        std::unique_ptr<IGame, std::function<void(IGame * game)>> game{ createGameLinked(&engine),
+                                                                        [destroyGameLinked](
+                                                                            IGame* game) {
+                                                                            destroyGameLinked(game);
+                                                                        } };
+
+        game->initialize();
+
+        bool isEnd{};
+        while (!isEnd) {
+            std::uint64_t frameStart{ SDL_GetTicks() };
+            Event event{};
+            while (engine->readInput(event)) {
+                std::cout << event << '\n';
+                if (event.type == Event::Type::turn_off) {
+                    std::cout << "exiting"sv << std::endl;
+                    isEnd = true;
+                    break;
+                }
+
+                game->onEvent(event);
+            }
+
+            ImGui_ImplSDL3_NewFrame();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui::NewFrame();
+
+            game->update();
+            game->render();
+
+            engine->swapBuffers();
+
+            if (!engine->getVSync() && engine->getFramerate() < 300) {
+                int frameDelay = 1000 / engine->getFramerate();
+                std::uint64_t frameTime{ SDL_GetTicks() - frameStart };
+                if (frameTime < frameDelay) SDL_Delay(frameDelay - frameTime);
+            }
+        }
+
+        engine->uninitialize();
+        return EXIT_SUCCESS;
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << '\n';
+    }
+    catch (...) {
+        std::cerr << "Unknown error"sv << '\n';
+    }
+
+    return EXIT_FAILURE;
+}
+
+#endif
