@@ -58,7 +58,7 @@ ShaderProgram::ShaderProgram(const fs::path& vertPath, const fs::path& fragPath)
 }
 
 void ShaderProgram::recompileShaders(const fs::path& vertPath, const fs::path& fragPath) {
-    glDeleteProgram(m_program);
+    if(m_program) glDeleteProgram(m_program);
     openGLCheck();
 
     m_program = glCreateProgram();
