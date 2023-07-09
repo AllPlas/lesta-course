@@ -318,7 +318,7 @@ Event::Keyboard::Key ImGuiKeyToEventKey(ImGuiKey key) {
     default:
         return Event::Keyboard::Key::not_key;
     }
-};
+}
 
 std::ifstream& operator>>(std::ifstream& in, Triangle& triangle) {
     for (auto& vertex : triangle.vertices)
@@ -519,6 +519,9 @@ private:
     SDL_GLContext m_glContext{};
     GLuint m_verticesArray{};
 
+    SDL_AudioSpec m_audioSpec{};
+    SDL_AudioDeviceID m_audioDevice{};
+
     ShaderProgram m_shaderProgram{};
     ShaderProgram m_shaderProgramWithView{};
 
@@ -604,8 +607,36 @@ public:
         glBindVertexArray(m_verticesArray);
         openGLCheck();
 
-        recompileShaders();
+        m_audioSpec.freq = 48000;
+        m_audioSpec.format = SDL_AUDIO_S16LSB;
+        m_audioSpec.channels = 2;
+        m_audioSpec.samples = 1024;
+        m_audioSpec.callback = audioCallback;
+        m_audioSpec.userdata = this;
 
+        std::string defaultAudioDeviceName{};
+        const int numAudioDevices{ SDL_GetNumAudioDevices(0) };
+        if (numAudioDevices > 0)
+            defaultAudioDeviceName = SDL_GetAudioDeviceName(numAudioDevices - 1, 0);
+
+        m_audioDevice = SDL_OpenAudioDevice(
+            defaultAudioDeviceName.c_str(), 0, &m_audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+        if (m_audioDevice == 0)
+            throw std::runtime_error{
+                "Error : EngineImpl::initialize : failed open audio device: "s + SDL_GetError()
+            };
+
+        std::cout << "audio device selected: "sv << defaultAudioDeviceName << '\n'
+                  << "freq: "sv << m_audioSpec.freq << '\n'
+                  << "format: "sv
+                  << "SDL_AUDIO_S16LSB"sv << '\n'
+                  << "channels: "sv << static_cast<int>(m_audioSpec.channels) << '\n'
+                  << "samples: "sv << m_audioSpec.samples << '\n'
+                  << std::flush;
+        SDL_PlayAudioDevice(m_audioDevice);
+
+        recompileShaders();
         SDL_GL_SetSwapInterval(1);
 
         // Setup Dear ImGui context
@@ -644,6 +675,8 @@ public:
 
         if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         if (m_window) SDL_DestroyWindow(m_window);
+
+        SDL_CloseAudioDevice(m_audioDevice);
         SDL_Quit();
     }
 
@@ -919,6 +952,8 @@ public:
         return ImGui::GetCurrentContext();
     }
 
+    friend class Audio;
+
 private:
     static void initSDL() {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD |
@@ -977,6 +1012,8 @@ private:
         if (gladLoadGLES2Loader(load_gl_pointer) == 0)
             throw std::runtime_error{ "Error : createGLContext : bad gladLoad"s };
     }
+
+    static void audioCallback(void* engine_ptr, std::uint8_t* stream, int streamSize) {}
 };
 
 static bool g_alreadyExist{ false };
