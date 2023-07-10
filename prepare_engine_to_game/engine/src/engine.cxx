@@ -741,12 +741,15 @@ std::string EngineImpl::initialize(std::string_view config) {
     m_audioSpec.userdata = this;
 
     std::string defaultAudioDeviceName{};
-    const int numAudioDevices{ SDL_GetNumAudioDevices(0) };
+    const int numAudioDevices{ SDL_GetNumAudioDevices(SDL_FALSE) };
     if (numAudioDevices > 0)
         defaultAudioDeviceName = SDL_GetAudioDeviceName(numAudioDevices - 1, 0);
 
-    m_audioDevice = SDL_OpenAudioDevice(
-        defaultAudioDeviceName.c_str(), 0, &m_audioSpec, &m_audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    m_audioDevice = SDL_OpenAudioDevice(defaultAudioDeviceName.c_str(),
+                                        SDL_FALSE,
+                                        &m_audioSpec,
+                                        &m_audioSpec,
+                                        SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     if (m_audioDevice == 0)
         throw std::runtime_error{ "Error : EngineImpl::initialize : failed open audio device: "s +
@@ -1070,7 +1073,7 @@ Audio::Audio(const fs::path& path) {
     if (file == nullptr) throw std::runtime_error{ "Error : Audio : failed read file"s };
 
     SDL_AudioSpec fileAudioSpec;
-    if (SDL_LoadWAV_RW(file, 1, &fileAudioSpec, &m_start, &m_size) == nullptr)
+    if (SDL_LoadWAV_RW(file, SDL_TRUE, &fileAudioSpec, &m_start, &m_size) == nullptr)
         throw std::runtime_error{ "Error : Audio : failed load wav"s };
 
     auto& engine{ dynamic_cast<EngineImpl&>(*getEngineInstance().get()) };
