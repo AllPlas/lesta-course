@@ -1,16 +1,13 @@
-//
-// Created by Алексей Крукович on 9.05.23.
-//
+#ifndef __ANDROID__
+#    include "hot_reload_provider.hxx"
 
-#include "hot_reload_provider.hxx"
+#    include <boost/json.hpp>
 
-#include <boost/json.hpp>
-
-#include <algorithm>
-#include <fstream>
-#include <ranges>
-#include <thread>
-#include <utility>
+#    include <algorithm>
+#    include <fstream>
+#    include <ranges>
+#    include <thread>
+#    include <utility>
 
 namespace json = boost::json;
 
@@ -82,11 +79,11 @@ void HotReloadProvider::configFileChanged() {
 }
 
 std::string_view HotReloadProvider::getPath(std::string_view name) const noexcept {
-#ifndef _WIN32
+#    ifndef _WIN32
     return m_map.at(name.data()).path.c_str();
-#else
+#    else
     return m_map.at(name.data()).path.string().c_str();
-#endif
+#    endif
 }
 
 void HotReloadProvider::extractData() {
@@ -108,3 +105,4 @@ HotReloadProvider& HotReloadProvider::getInstance() {
 
     return provider;
 }
+#endif

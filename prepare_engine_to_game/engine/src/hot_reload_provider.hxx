@@ -1,13 +1,10 @@
-//
-// Created by Алексей Крукович on 9.05.23.
-//
+#ifndef __ANDROID__
+#    ifndef SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
+#        define SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
 
-#ifndef SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
-#define SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
-
-#include <filesystem>
-#include <functional>
-#include <unordered_map>
+#        include <filesystem>
+#        include <functional>
+#        include <unordered_map>
 
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -46,4 +43,5 @@ private:
     void configFileChanged();
 };
 
-#endif // SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
+#    endif // SDL_ENGINE_EXE_HOTRELOADPROVIDER_HXX
+#endif
