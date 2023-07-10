@@ -745,7 +745,7 @@ std::string EngineImpl::initialize(std::string_view config) {
     m_audioSpec.freq = 48000;
     m_audioSpec.format = SDL_AUDIO_S16LSB;
     m_audioSpec.channels = 2;
-    m_audioSpec.samples = 1024;
+    m_audioSpec.samples = 512;
     m_audioSpec.callback = audioCallback;
     m_audioSpec.userdata = this;
 
@@ -1077,7 +1077,7 @@ const std::string& EngineImpl::getCurrentAudioDeviceName() const noexcept {
 void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
     SDL_CloseAudioDevice(m_audioDevice);
     m_audioDevice = SDL_OpenAudioDevice(
-        audioDeviceName.data(), SDL_FALSE, &m_audioSpec, &m_audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+        audioDeviceName.data(), SDL_FALSE, &m_audioSpec, &m_audioSpec, 0);
 
     if (m_audioDevice == 0)
         throw std::runtime_error{ "Error : setAudioDevice : can't open audio device"s };
