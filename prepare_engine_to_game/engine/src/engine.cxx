@@ -43,6 +43,9 @@ static const std::unordered_map<Event::Type, std::string_view> s_eventTypeToStri
     { Event::Type::mouse_up, "button_up" },
     { Event::Type::mouse_wheel, "spin_wheel" },
     { Event::Type::mouse_motion, "mouse_motion" },
+    { Event::Type::touch_down, "touch_down" },
+    { Event::Type::touch_up, "touch_up" },
+    { Event::Type::touch_motion, "touch_motion" },
     { Event::Type::window_resized, "window_resized" },
     { Event::Type::turn_off, "turn_off" },
     { Event::Type::not_event, "" }
@@ -497,6 +500,29 @@ static std::optional<Event> checkMouseInput(SDL_Event& sdlEvent) {
     return std::nullopt;
 }
 
+static std::optional<Event> checkTouchInput(SDL_Event& sdlEvent) {
+    Event event{};
+    switch (sdlEvent.type) {
+    case SDL_EVENT_FINGER_DOWN:
+        event.type = Event::Type::touch_down;
+        break;
+    case SDL_EVENT_FINGER_UP:
+        event.type = Event::Type::touch_up;
+        break;
+    case SDL_EVENT_FINGER_MOTION:
+        event.type = Event::Type::touch_motion;
+        break;
+    default:
+        event.type = Event::Type::not_event;
+    }
+
+    event.touch.pos.x = sdlEvent.tfinger.x;
+    event.touch.pos.y = sdlEvent.tfinger.y;
+
+    if (event.type == Event::Type::not_event) return std::nullopt;
+    return event;
+}
+
 static std::string readFile(const fs::path& path) {
     std::ifstream in{ path };
     if (!in.is_open()) throw std::runtime_error{ "Error : readFile : bad open file"s };
@@ -848,6 +874,14 @@ bool EngineImpl::readInput(Event& event) {
         if (sdlEvent.type == SDL_EVENT_WINDOW_RESIZED) {
             event.type = Event::Type::window_resized;
             return true;
+        }
+
+        if (sdlEvent.type == SDL_EVENT_FINGER_DOWN || sdlEvent.type == SDL_EVENT_FINGER_UP ||
+            sdlEvent.type == SDL_EVENT_FINGER_MOTION) {
+            if (auto e{ checkTouchInput(sdlEvent) }) {
+                event = *e;
+                return true;
+            }
         }
     }
 

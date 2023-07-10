@@ -33,6 +33,9 @@ struct Event
         mouse_up,
         mouse_wheel,
         mouse_motion,
+        touch_down,
+        touch_up,
+        touch_motion,
         window_resized,
         turn_off,
 
@@ -173,9 +176,15 @@ struct Event
         Wheel wheel{};
     };
 
+    struct Touch
+    {
+        Position pos{};
+    };
+
     Type type{ Type::not_event };
     Keyboard keyboard{};
     Mouse mouse{};
+    Touch touch{};
 };
 
 std::ostream& operator<<(std::ostream& out, const Event& event);

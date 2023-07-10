@@ -401,6 +401,14 @@ public:
             player->resizeUpdate();
             break;
 
+        case Event::Type::touch_down:
+            if (event.touch.pos.y > getEngineInstance()->getWindowSize().height / 2) ship->move();
+            break;
+
+        case Event::Type::touch_up:
+            ship->stopMove();
+            break;
+
         default:
             break;
         }
