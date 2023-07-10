@@ -528,6 +528,7 @@ private:
     SDL_AudioSpec m_audioSpec{};
     SDL_AudioDeviceID m_audioDevice{};
     std::string m_currentAudioDeviceName{};
+    int m_audioVolume{ SDL_MIX_MAXVOLUME };
 
     ShaderProgram m_shaderProgram{};
     ShaderProgram m_shaderProgramWithView{};
@@ -602,6 +603,9 @@ public:
     [[nodiscard]] std::vector<std::string> getAudioDeviceNames() const noexcept override;
     [[nodiscard]] const std::string& getCurrentAudioDeviceName() const noexcept override;
     void setAudioDevice(std::string_view audioDeviceName) override;
+
+    [[nodiscard]] int getAudioVolume() const noexcept override;
+    void setAudioVolume(int audioVolume) override;
 
 private:
     static void initSDL() {
@@ -1035,12 +1039,15 @@ void EngineImpl::audioCallback(void* engine_ptr, std::uint8_t* stream, int strea
 
             if (rest <= static_cast<std::uint32_t>(streamSize)) {
                 SDL_MixAudioFormat(
-                    stream, current_buf, engine->m_audioSpec.format, rest, SDL_MIX_MAXVOLUME);
+                    stream, current_buf, engine->m_audioSpec.format, rest, engine->m_audioVolume);
                 sound.m_currentPos += rest;
             }
             else {
-                SDL_MixAudioFormat(
-                    stream, current_buf, engine->m_audioSpec.format, streamSize, SDL_MIX_MAXVOLUME);
+                SDL_MixAudioFormat(stream,
+                                   current_buf,
+                                   engine->m_audioSpec.format,
+                                   streamSize,
+                                   engine->m_audioVolume);
                 sound.m_currentPos += streamSize;
             }
 
@@ -1106,6 +1113,14 @@ void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
     }
 
     SDL_PlayAudioDevice(m_audioDevice);
+}
+
+int EngineImpl::getAudioVolume() const noexcept { return m_audioVolume; }
+
+void EngineImpl::setAudioVolume(int audioVolume) {
+    if (audioVolume < 0 || audioVolume > 128)
+        throw std::runtime_error{ "Error : setAudioVolume : volume should be in range [0, 128] "s };
+    m_audioVolume = audioVolume;
 }
 
 static bool g_alreadyExist{ false };

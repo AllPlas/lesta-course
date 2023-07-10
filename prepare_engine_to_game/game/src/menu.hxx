@@ -16,6 +16,7 @@ private:
     std::vector<const char*> m_audioDevicesC{};
     int m_selectedAudioDevice{};
     bool m_isRequiredAudioDevicesUpdate{};
+    int m_audioVolume{ getEngineInstance()->getAudioVolume() };
 
 public:
     void render();

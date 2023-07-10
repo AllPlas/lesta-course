@@ -238,6 +238,8 @@ public:
     [[nodiscard]] virtual std::vector<std::string> getAudioDeviceNames() const noexcept = 0;
     [[nodiscard]] virtual const std::string& getCurrentAudioDeviceName() const noexcept = 0;
     virtual void setAudioDevice(std::string_view audioDeviceName) = 0;
+    [[nodiscard]] virtual int getAudioVolume() const noexcept = 0;
+    virtual void setAudioVolume(int audioVolume) = 0;
 };
 
 using EnginePtr = std::unique_ptr<IEngine, std::function<void(IEngine*)>>;

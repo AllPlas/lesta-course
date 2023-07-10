@@ -31,11 +31,15 @@ void Menu::render() {
             m_isRequiredAudioDevicesUpdate = false;
         }
 
-        if (ImGui::Combo("Select an option",
+        if (ImGui::Combo("Select an audio device",
                          &m_selectedAudioDevice,
                          m_audioDevicesC.data(),
                          m_audioDevicesC.size())) {
             getEngineInstance()->setAudioDevice(m_audioDevices.at(m_selectedAudioDevice));
+        }
+
+        if (ImGui::SliderInt("Audio volume", &m_audioVolume, 0, 128)) {
+            getEngineInstance()->setAudioVolume(m_audioVolume);
         }
 
         ImGui::PushID(0);
