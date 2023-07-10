@@ -527,6 +527,7 @@ private:
 
     SDL_AudioSpec m_audioSpec{};
     SDL_AudioDeviceID m_audioDevice{};
+    std::string m_currentAudioDeviceName{};
 
     ShaderProgram m_shaderProgram{};
     ShaderProgram m_shaderProgramWithView{};
@@ -597,6 +598,10 @@ public:
     [[nodiscard]] ImGuiContext* getImGuiContext() const noexcept override {
         return ImGui::GetCurrentContext();
     }
+
+    [[nodiscard]] std::vector<std::string> getAudioDeviceNames() const noexcept override;
+    [[nodiscard]] const std::string& getCurrentAudioDeviceName() const noexcept override;
+    void setAudioDevice(std::string_view audioDeviceName) override;
 
 private:
     static void initSDL() {
@@ -745,6 +750,8 @@ std::string EngineImpl::initialize(std::string_view config) {
     if (numAudioDevices > 0)
         defaultAudioDeviceName = SDL_GetAudioDeviceName(numAudioDevices - 1, 0);
 
+    m_currentAudioDeviceName = defaultAudioDeviceName;
+
     m_audioDevice = SDL_OpenAudioDevice(defaultAudioDeviceName.c_str(),
                                         SDL_FALSE,
                                         &m_audioSpec,
@@ -791,6 +798,7 @@ std::string EngineImpl::initialize(std::string_view config) {
 }
 
 void EngineImpl::uninitialize() {
+    SDL_CloseAudioDevice(m_audioDevice);
     glDeleteVertexArrays(1, &m_verticesArray);
     openGLCheck();
 
@@ -804,7 +812,6 @@ void EngineImpl::uninitialize() {
     if (m_glContext) SDL_GL_DeleteContext(m_glContext);
     if (m_window) SDL_DestroyWindow(m_window);
 
-    SDL_CloseAudioDevice(m_audioDevice);
     SDL_Quit();
 }
 
@@ -1045,6 +1052,29 @@ void EngineImpl::audioCallback(void* engine_ptr, std::uint8_t* stream, int strea
             }
         }
     }
+}
+
+std::vector<std::string> EngineImpl::getAudioDeviceNames() const noexcept {
+    std::vector<std::string> names{};
+    const int count{ SDL_GetNumAudioDevices(SDL_FALSE) };
+    for (int i{}; i < count; ++i)
+        names.emplace_back(SDL_GetAudioDeviceName(i, SDL_FALSE));
+
+    return names;
+}
+
+const std::string& EngineImpl::getCurrentAudioDeviceName() const noexcept {
+    return m_currentAudioDeviceName;
+}
+
+void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
+    SDL_CloseAudioDevice(m_audioDevice);
+    m_audioDevice = SDL_OpenAudioDevice(
+        audioDeviceName.data(), SDL_FALSE, &m_audioSpec, &m_audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+    if (m_audioDevice == 0)
+        throw std::runtime_error{ "Error : setAudioDevice : can't open audio device"s };
+    m_currentAudioDeviceName = audioDeviceName;
 }
 
 static bool g_alreadyExist{ false };

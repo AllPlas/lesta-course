@@ -19,6 +19,20 @@ void Menu::render() {
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
         ImGui::SliderFloat("Camera height", &Config::camera_height, 0.5f, 1.25f);
 
+        auto audioDevices{ getEngineInstance()->getAudioDeviceNames() };
+        static int selectedAudioDevice =
+            std::find(audioDevices.begin(),
+                      audioDevices.end(),
+                      getEngineInstance()->getCurrentAudioDeviceName()) -
+            audioDevices.begin();
+
+        if (ImGui::Combo("Select an option",
+                         &selectedAudioDevice,
+                         audioDevices.data()->data(),
+                         audioDevices.size())) {
+            getEngineInstance()->setAudioDevice(audioDevices.at(selectedAudioDevice));
+        }
+
         ImGui::PushID(0);
         ImGui::Text("Ship Move Key: %s", keyToStr(Config::ship_move_key).data());
         ImGui::SameLine();
