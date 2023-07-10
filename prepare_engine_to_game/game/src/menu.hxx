@@ -12,6 +12,11 @@ private:
     std::string m_keybindingMessage{};
     Event::Keyboard::Key* m_bindingKey{};
 
+    std::vector<std::string> m_audioDevices{};
+    std::vector<const char*> m_audioDevicesC{};
+    int m_selectedAudioDevice{};
+    bool m_isRequiredAudioDevicesUpdate{};
+
 public:
     void render();
     [[nodiscard]] bool getActive() const noexcept { return m_isActive; }

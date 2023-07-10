@@ -1075,6 +1075,37 @@ void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
     if (m_audioDevice == 0)
         throw std::runtime_error{ "Error : setAudioDevice : can't open audio device"s };
     m_currentAudioDeviceName = audioDeviceName;
+
+    std::cout << "audio device selected: "sv << m_currentAudioDeviceName << '\n'
+              << "freq: "sv << m_audioSpec.freq << '\n'
+              << "format: "sv << m_audioSpec.format << '\n'
+              << "channels: "sv << static_cast<int>(m_audioSpec.channels) << '\n'
+              << "samples: "sv << m_audioSpec.samples << '\n'
+              << std::flush;
+
+    std::lock_guard lock{ g_audioMutex };
+    for (Audio& sound : m_sounds) {
+        std::uint8_t* newStart{};
+        int newSize{};
+        SDL_ConvertAudioSamples(sound.m_format,
+                                sound.m_channels,
+                                sound.m_freq,
+                                sound.m_start,
+                                sound.m_size,
+                                m_audioSpec.format,
+                                m_audioSpec.channels,
+                                m_audioSpec.freq,
+                                &newStart,
+                                &newSize);
+
+        sound.m_start = newStart;
+        sound.m_size = newSize;
+        sound.m_format = m_audioSpec.format;
+        sound.m_channels = m_audioSpec.channels;
+        sound.m_freq = m_audioSpec.freq;
+    }
+
+    SDL_PlayAudioDevice(m_audioDevice);
 }
 
 static bool g_alreadyExist{ false };
@@ -1105,6 +1136,9 @@ Audio::Audio(const fs::path& path) {
     SDL_AudioSpec fileAudioSpec;
     if (SDL_LoadWAV_RW(file, SDL_TRUE, &fileAudioSpec, &m_start, &m_size) == nullptr)
         throw std::runtime_error{ "Error : Audio : failed load wav"s };
+    m_format = fileAudioSpec.format;
+    m_channels = fileAudioSpec.channels;
+    m_freq = fileAudioSpec.freq;
 
     auto& engine{ dynamic_cast<EngineImpl&>(*getEngineInstance().get()) };
     auto& requiredAudioSpec{ engine.m_audioSpec };
@@ -1128,6 +1162,9 @@ Audio::Audio(const fs::path& path) {
         SDL_free(m_start);
         m_start = newStart;
         m_size = newSize;
+        m_format = requiredAudioSpec.format;
+        m_channels = requiredAudioSpec.channels;
+        m_freq = requiredAudioSpec.freq;
     }
     std::lock_guard lock{ g_audioMutex };
     engine.m_sounds.emplace_back(*this);

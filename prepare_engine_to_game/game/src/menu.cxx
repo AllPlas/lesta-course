@@ -19,18 +19,23 @@ void Menu::render() {
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
         ImGui::SliderFloat("Camera height", &Config::camera_height, 0.5f, 1.25f);
 
-        auto audioDevices{ getEngineInstance()->getAudioDeviceNames() };
-        static int selectedAudioDevice =
-            std::find(audioDevices.begin(),
-                      audioDevices.end(),
-                      getEngineInstance()->getCurrentAudioDeviceName()) -
-            audioDevices.begin();
+        if (m_isRequiredAudioDevicesUpdate) {
+            m_audioDevices = getEngineInstance()->getAudioDeviceNames();
+            m_audioDevicesC.clear();
+            for (auto& name : m_audioDevices)
+                m_audioDevicesC.push_back(name.c_str());
+            m_selectedAudioDevice = std::find(m_audioDevices.begin(),
+                                              m_audioDevices.end(),
+                                              getEngineInstance()->getCurrentAudioDeviceName()) -
+                                    m_audioDevices.begin();
+            m_isRequiredAudioDevicesUpdate = false;
+        }
 
         if (ImGui::Combo("Select an option",
-                         &selectedAudioDevice,
-                         audioDevices.data()->data(),
-                         audioDevices.size())) {
-            getEngineInstance()->setAudioDevice(audioDevices.at(selectedAudioDevice));
+                         &m_selectedAudioDevice,
+                         m_audioDevicesC.data(),
+                         m_audioDevicesC.size())) {
+            getEngineInstance()->setAudioDevice(m_audioDevices.at(m_selectedAudioDevice));
         }
 
         ImGui::PushID(0);
@@ -179,7 +184,10 @@ void Menu::render() {
 
     ImGui::SetCursorPosX(posX);
 
-    if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) { m_isSettingMenu = true; }
+    if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) {
+        m_isSettingMenu = true;
+        m_isRequiredAudioDevicesUpdate = true;
+    }
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + buttonHeight);
 
     ImGui::SetCursorPosX(posX);

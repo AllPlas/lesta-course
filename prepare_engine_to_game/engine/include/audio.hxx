@@ -16,6 +16,10 @@ private:
     bool m_isPlaying{};
     bool m_isLooped{};
 
+    std::uint16_t m_format{};
+    std::uint8_t m_channels{};
+    int m_freq{};
+
 public:
     explicit Audio(const fs::path& path);
     ~Audio();
