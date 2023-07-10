@@ -1094,17 +1094,20 @@ void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
     for (Audio& sound : m_sounds) {
         std::uint8_t* newStart{};
         int newSize{};
-        SDL_ConvertAudioSamples(sound.m_format,
-                                sound.m_channels,
-                                sound.m_freq,
-                                sound.m_start,
-                                sound.m_size,
-                                m_audioSpec.format,
-                                m_audioSpec.channels,
-                                m_audioSpec.freq,
-                                &newStart,
-                                &newSize);
+        int convertStatus{ SDL_ConvertAudioSamples(sound.m_format,
+                                                   sound.m_channels,
+                                                   sound.m_freq,
+                                                   sound.m_start,
+                                                   sound.m_size,
+                                                   m_audioSpec.format,
+                                                   m_audioSpec.channels,
+                                                   m_audioSpec.freq,
+                                                   &newStart,
+                                                   &newSize) };
+        if (convertStatus != 0)
+            throw std::runtime_error{ "Error : setAudioDevice : failed convert audio"s };
 
+        SDL_free(sound.m_start);
         sound.m_start = newStart;
         sound.m_size = newSize;
         sound.m_format = m_audioSpec.format;
@@ -1173,7 +1176,7 @@ Audio::Audio(const fs::path& path) {
                                                    requiredAudioSpec.freq,
                                                    &newStart,
                                                    &newSize) };
-        if (convertStatus != 0) throw std::runtime_error{ "Error : Audio: failed convert audio"s };
+        if (convertStatus != 0) throw std::runtime_error{ "Error : Audio : failed convert audio"s };
         SDL_free(m_start);
         m_start = newStart;
         m_size = newSize;
