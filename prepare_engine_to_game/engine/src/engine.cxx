@@ -1076,8 +1076,8 @@ const std::string& EngineImpl::getCurrentAudioDeviceName() const noexcept {
 
 void EngineImpl::setAudioDevice(std::string_view audioDeviceName) {
     SDL_CloseAudioDevice(m_audioDevice);
-    m_audioDevice = SDL_OpenAudioDevice(
-        audioDeviceName.data(), SDL_FALSE, &m_audioSpec, &m_audioSpec, 0);
+    m_audioDevice =
+        SDL_OpenAudioDevice(audioDeviceName.data(), SDL_FALSE, &m_audioSpec, &m_audioSpec, 0);
 
     if (m_audioDevice == 0)
         throw std::runtime_error{ "Error : setAudioDevice : can't open audio device"s };
@@ -1148,7 +1148,11 @@ const EnginePtr& getEngineInstance() {
 }
 
 Audio::Audio(const fs::path& path) {
+#ifndef __WIN32__
     SDL_RWops* file{ SDL_RWFromFile(path.c_str(), "rb") };
+#else
+    SDL_RWops* file{ SDL_RWFromFile(path.string().c_str(), "rb") };
+#endif
     if (file == nullptr) throw std::runtime_error{ "Error : Audio : failed read file"s };
 
     SDL_AudioSpec fileAudioSpec;

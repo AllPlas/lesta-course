@@ -75,7 +75,7 @@ public:
                        { 50, 50 },
                        { 8000, 8000 } };
         coin = new Texture{};
-        audio = new Audio{ "/Users/aleksey/Downloads/Sound_44202100-1667732232.wav" };
+        audio = new Audio{ "data/audio/m.wav" };
         coin->load("data/assets/coin.png");
         map->generateBottle();
         map->addIsland({ 400, 400 },
@@ -246,6 +246,7 @@ public:
 
         Island::setIslandTiles(m_islandSprites);
         Island::setIslandPattern(m_charToIslandString);
+        audio->play(true);
     }
 
     void onEvent(const Event& event) override {
@@ -291,7 +292,6 @@ public:
                 }
 
                 if (event.keyboard.key == Config::dig_treasure_key) {
-                    audio->play();
                     player->tryDig();
                     break;
                 }
