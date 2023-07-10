@@ -22,6 +22,8 @@ private:
     Map* map{};
     Texture* coin{};
 
+    Audio* audio{};
+
     Menu menu{};
 
     std::unordered_map<std::string, Sprite> m_islandSprites{};
@@ -73,6 +75,7 @@ public:
                        { 50, 50 },
                        { 8000, 8000 } };
         coin = new Texture{};
+        audio = new Audio{ "/Users/aleksey/Downloads/Sound_44202100-1667732232.wav" };
         coin->load("data/assets/coin.png");
         map->generateBottle();
         map->addIsland({ 400, 400 },
@@ -288,6 +291,7 @@ public:
                 }
 
                 if (event.keyboard.key == Config::dig_treasure_key) {
+                    audio->play();
                     player->tryDig();
                     break;
                 }

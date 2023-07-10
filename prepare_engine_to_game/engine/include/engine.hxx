@@ -16,6 +16,7 @@
 #include <string>
 #include <string_view>
 
+#include "audio.hxx"
 #include "buffer.hxx"
 #include "shader_program.hxx"
 #include "sprite.hxx"

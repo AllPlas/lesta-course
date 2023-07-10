@@ -11,6 +11,7 @@
 #include <fstream>
 #include <glad/glad.h>
 #include <iostream>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <thread>
@@ -512,8 +513,13 @@ static std::string readFile(const fs::path& path) {
     return result;
 }
 
+static std::mutex g_audioMutex{};
+
 class EngineImpl final : public IEngine
 {
+public:
+    friend class Audio;
+
 private:
     SDL_Window* m_window{};
     SDL_GLContext m_glContext{};
@@ -527,6 +533,8 @@ private:
 
     std::reference_wrapper<ShaderProgram> m_program{ m_shaderProgram };
 
+    std::vector<std::reference_wrapper<Audio>> m_sounds{};
+
     int m_framerate{ 150 };
 
 public:
@@ -534,400 +542,38 @@ public:
 
     ~EngineImpl() override = default;
 
-    std::string initialize(std::string_view config) override {
-#ifdef __ANDROID__
-        if (m_window) return "";
-#endif
+    std::string initialize(std::string_view config) override;
 
-        initSDL();
+    void uninitialize() override;
 
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
-                            SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    bool readInput(Event& event) override;
 
-#ifndef __ANDROID__
+    void swapBuffers() override;
 
-        auto jsonValue(json::parse(config));
-
-        auto windowName{ jsonValue.as_object().contains("window_name")
-                             ? jsonValue.as_object().at("window_name").as_string()
-                             : "SDL + OPENGL"sv };
-
-        auto width{ jsonValue.as_object().contains("window_width")
-                        ? jsonValue.as_object().at("window_width").as_int64()
-                        : 800 };
-
-        auto height{ jsonValue.as_object().contains("window_height")
-                         ? jsonValue.as_object().at("window_height").as_int64()
-                         : 600 };
-
-        auto isWindowResizable{ jsonValue.as_object().contains("is_window_resizable") &&
-                                jsonValue.as_object().at("is_window_resizable").as_bool() };
-
-        auto minWidth{ jsonValue.as_object().contains("window_min_width")
-                           ? jsonValue.as_object().at("window_min_width").as_int64()
-                           : 640 };
-
-        auto minHeight{ jsonValue.as_object().contains("window_min_height")
-                            ? jsonValue.as_object().at("window_min_height").as_int64()
-                            : 480 };
-
-        int flags{};
-        flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN;
-        if (isWindowResizable) flags |= SDL_WINDOW_RESIZABLE;
-
-        m_window = createWindow(windowName,
-                                static_cast<int>(width),
-                                static_cast<int>(height),
-                                static_cast<SDL_WindowFlags>(flags));
-
-        SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        SDL_SetWindowMinimumSize(m_window, static_cast<int>(minWidth), static_cast<int>(minHeight));
-        SDL_ShowWindow(m_window);
-
-#else
-        const SDL_DisplayMode* displayMode{ SDL_GetCurrentDisplayMode(1) };
-        m_window = createWindow("android", displayMode->w, displayMode->h, SDL_WINDOW_OPENGL);
-#endif
-
-        createGLContext();
-
-        glEnable(GL_DEPTH_TEST);
-        openGLCheck();
-
-        glEnable(GL_BLEND);
-        openGLCheck();
-
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        openGLCheck();
-
-        glGenVertexArrays(1, &m_verticesArray);
-        openGLCheck();
-
-        glBindVertexArray(m_verticesArray);
-        openGLCheck();
-
-        m_audioSpec.freq = 48000;
-        m_audioSpec.format = SDL_AUDIO_S16LSB;
-        m_audioSpec.channels = 2;
-        m_audioSpec.samples = 1024;
-        m_audioSpec.callback = audioCallback;
-        m_audioSpec.userdata = this;
-
-        std::string defaultAudioDeviceName{};
-        const int numAudioDevices{ SDL_GetNumAudioDevices(0) };
-        if (numAudioDevices > 0)
-            defaultAudioDeviceName = SDL_GetAudioDeviceName(numAudioDevices - 1, 0);
-
-        m_audioDevice = SDL_OpenAudioDevice(
-            defaultAudioDeviceName.c_str(), 0, &m_audioSpec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
-
-        if (m_audioDevice == 0)
-            throw std::runtime_error{
-                "Error : EngineImpl::initialize : failed open audio device: "s + SDL_GetError()
-            };
-
-        std::cout << "audio device selected: "sv << defaultAudioDeviceName << '\n'
-                  << "freq: "sv << m_audioSpec.freq << '\n'
-                  << "format: "sv
-                  << "SDL_AUDIO_S16LSB"sv << '\n'
-                  << "channels: "sv << static_cast<int>(m_audioSpec.channels) << '\n'
-                  << "samples: "sv << m_audioSpec.samples << '\n'
-                  << std::flush;
-        SDL_PlayAudioDevice(m_audioDevice);
-
-        recompileShaders();
-        SDL_GL_SetSwapInterval(1);
-
-        // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        ( void )io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
-#ifdef __APPLE__
-        const char* glsl_version = "#version 150";
-#else
-        const char* glsl_version = "#version 300 es";
-#endif
-        ImGui_ImplOpenGL3_Init(glsl_version);
-
-        return "";
-    }
-
-    void uninitialize() override {
-        glDeleteVertexArrays(1, &m_verticesArray);
-        openGLCheck();
-
-        m_shaderProgram.clear();
-        m_shaderProgramWithView.clear();
-
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplSDL3_Shutdown();
-        ImGui::DestroyContext();
-
-        if (m_glContext) SDL_GL_DeleteContext(m_glContext);
-        if (m_window) SDL_DestroyWindow(m_window);
-
-        SDL_CloseAudioDevice(m_audioDevice);
-        SDL_Quit();
-    }
-
-    bool readInput(Event& event) override {
-        SDL_Event sdlEvent;
-        if (SDL_PollEvent(&sdlEvent)) {
-            ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
-
-            if (sdlEvent.type == SDL_EVENT_QUIT) {
-                event.type = Event::Type::turn_off;
-                return true;
-            }
-
-            if (sdlEvent.type == SDL_EVENT_KEY_DOWN || sdlEvent.type == SDL_EVENT_KEY_UP) {
-                if (auto e{ checkKeyboardInput(sdlEvent) }) {
-                    event = *e;
-                    return true;
-                }
-            }
-
-            if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
-                sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_UP ||
-                sdlEvent.type == SDL_EVENT_MOUSE_MOTION || sdlEvent.type == SDL_EVENT_MOUSE_WHEEL) {
-                if (auto e{ checkMouseInput(sdlEvent) }) {
-                    event = *e;
-                    return true;
-                }
-            }
-
-            if (sdlEvent.type == SDL_EVENT_WINDOW_RESIZED) {
-                event.type = Event::Type::window_resized;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    void swapBuffers() override {
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        int width{}, height{};
-        SDL_GetWindowSizeInPixels(m_window, &width, &height);
-        glViewport(0, 0, width, height);
-        openGLCheck();
-
-        SDL_GL_SwapWindow(m_window);
-
-        glClearColor(0.0f, 0.0f, 0.f, 1.f);
-        openGLCheck();
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        openGLCheck();
-    }
-
-    void recompileShaders() override {
-#ifndef __ANDROID__
-        m_shaderProgram.recompileShaders(
-            HotReloadProvider::getInstance().getPath("vertex_shader_without_view"),
-            HotReloadProvider::getInstance().getPath("fragment_shader"));
-
-        m_shaderProgramWithView.recompileShaders(
-            HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
-            HotReloadProvider::getInstance().getPath("fragment_shader"));
-#else
-        m_shaderProgram.recompileShaders("data/shaders/vertex_shader_without_view.vert",
-                                         "data/shaders/fragment_shader.frag");
-
-        m_shaderProgramWithView.recompileShaders("data/shaders/vertex_shader_with_view.vert",
-                                                 "data/shaders/fragment_shader.frag");
-#endif
-
-        m_program.get().use();
-    }
+    void recompileShaders() override;
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint16_t>& indexBuffer,
-                const Texture& texture) override {
-        m_program.get().use();
-        glm::mat3 mat{ 1.0f };
-        m_program.get().setUniform("matrix", mat);
-        m_program.get().setUniform("texSampler", texture);
-
-        texture.bind();
-        vertexBuffer.bind();
-        indexBuffer.bind();
-
-        glEnableVertexAttribArray(0);
-        openGLCheck();
-
-        glEnableVertexAttribArray(1);
-        openGLCheck();
-
-        glEnableVertexAttribArray(2);
-        openGLCheck();
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
-        openGLCheck();
-
-        glVertexAttribPointer(1,
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
-        openGLCheck();
-
-        glVertexAttribPointer(2,
-                              4,
-                              GL_UNSIGNED_BYTE,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
-        openGLCheck();
-
-        glDrawElements(
-            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
-        openGLCheck();
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(2);
-    }
+                const Texture& texture) override;
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint32_t>& indexBuffer,
-                const Texture& texture) override {
-        m_program.get().use();
-        m_program.get().setUniform("texSampler", texture);
-
-        texture.bind();
-        vertexBuffer.bind();
-        indexBuffer.bind();
-
-        glEnableVertexAttribArray(0);
-        openGLCheck();
-
-        glEnableVertexAttribArray(1);
-        openGLCheck();
-
-        glEnableVertexAttribArray(2);
-        openGLCheck();
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
-        openGLCheck();
-
-        glVertexAttribPointer(1,
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
-        openGLCheck();
-
-        glVertexAttribPointer(2,
-                              4,
-                              GL_UNSIGNED_BYTE,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
-        openGLCheck();
-
-        glDrawElements(
-            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_INT, nullptr);
-        openGLCheck();
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(2);
-    }
+                const Texture& texture) override;
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint32_t>& indexBuffer,
                 const Texture& texture,
-                const glm::mat3& matrix) override {
-        m_program.get().use();
-        m_program.get().setUniform("matrix", matrix);
-        render(vertexBuffer, indexBuffer, texture);
-    }
+                const glm::mat3& matrix) override;
 
     void render(const VertexBuffer<Vertex2>& vertexBuffer,
                 const IndexBuffer<std::uint32_t>& indexBuffer,
                 const Texture& texture,
                 const glm::mat3& matrix,
-                const View& view) override {
-        ShaderProgram& lastProgram{ m_program.get() };
-        m_program = m_shaderProgramWithView;
-        m_program.get().use();
-        m_program.get().setUniform("viewMatrix", view.getViewMatrix());
-        render(vertexBuffer, indexBuffer, texture, matrix);
-        m_program = lastProgram;
-    }
+                const View& view) override;
 
-    void render(const Sprite& sprite) override {
-        m_program.get().use();
-        m_program.get().setUniform("matrix", sprite.getResultMatrix());
-        m_program.get().setUniform("texSampler", sprite.getTexture());
+    void render(const Sprite& sprite) override;
 
-        VertexBuffer vertexBuffer{ sprite.getVertices() };
-        IndexBuffer indexBuffer{ sprite.getIndices() };
-
-        sprite.getTexture().bind();
-        vertexBuffer.bind();
-        indexBuffer.bind();
-
-        glEnableVertexAttribArray(0);
-        openGLCheck();
-
-        glEnableVertexAttribArray(1);
-        openGLCheck();
-
-        glEnableVertexAttribArray(2);
-        openGLCheck();
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
-        openGLCheck();
-
-        glVertexAttribPointer(1,
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
-        openGLCheck();
-
-        glVertexAttribPointer(2,
-                              4,
-                              GL_UNSIGNED_BYTE,
-                              GL_FALSE,
-                              sizeof(Vertex2),
-                              reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
-        openGLCheck();
-
-        glDrawElements(
-            GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
-        openGLCheck();
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(2);
-    }
-
-    void render(const Sprite& sprite, const View& view) override {
-        ShaderProgram& lastProgram{ m_program.get() };
-        m_program = m_shaderProgramWithView;
-        m_program.get().use();
-        m_program.get().setUniform("viewMatrix", view.getViewMatrix());
-        render(sprite);
-        m_program = lastProgram;
-    }
+    void render(const Sprite& sprite, const View& view) override;
 
     [[nodiscard]] WindowSize getWindowSize() const noexcept override {
         int width{};
@@ -951,8 +597,6 @@ public:
     [[nodiscard]] ImGuiContext* getImGuiContext() const noexcept override {
         return ImGui::GetCurrentContext();
     }
-
-    friend class Audio;
 
 private:
     static void initSDL() {
@@ -1013,8 +657,392 @@ private:
             throw std::runtime_error{ "Error : createGLContext : bad gladLoad"s };
     }
 
-    static void audioCallback(void* engine_ptr, std::uint8_t* stream, int streamSize) {}
+    static void audioCallback(void* engine_ptr, std::uint8_t* stream, int streamSize);
 };
+
+std::string EngineImpl::initialize(std::string_view config) {
+#ifdef __ANDROID__
+    if (m_window) return "";
+#endif
+
+    initSDL();
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
+                        SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+
+#ifndef __ANDROID__
+
+    auto jsonValue(json::parse(config));
+
+    auto windowName{ jsonValue.as_object().contains("window_name")
+                         ? jsonValue.as_object().at("window_name").as_string()
+                         : "SDL + OPENGL"sv };
+
+    auto width{ jsonValue.as_object().contains("window_width")
+                    ? jsonValue.as_object().at("window_width").as_int64()
+                    : 800 };
+
+    auto height{ jsonValue.as_object().contains("window_height")
+                     ? jsonValue.as_object().at("window_height").as_int64()
+                     : 600 };
+
+    auto isWindowResizable{ jsonValue.as_object().contains("is_window_resizable") &&
+                            jsonValue.as_object().at("is_window_resizable").as_bool() };
+
+    auto minWidth{ jsonValue.as_object().contains("window_min_width")
+                       ? jsonValue.as_object().at("window_min_width").as_int64()
+                       : 640 };
+
+    auto minHeight{ jsonValue.as_object().contains("window_min_height")
+                        ? jsonValue.as_object().at("window_min_height").as_int64()
+                        : 480 };
+
+    int flags{};
+    flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN;
+    if (isWindowResizable) flags |= SDL_WINDOW_RESIZABLE;
+
+    m_window = createWindow(windowName,
+                            static_cast<int>(width),
+                            static_cast<int>(height),
+                            static_cast<SDL_WindowFlags>(flags));
+
+    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowMinimumSize(m_window, static_cast<int>(minWidth), static_cast<int>(minHeight));
+    SDL_ShowWindow(m_window);
+
+#else
+    const SDL_DisplayMode* displayMode{ SDL_GetCurrentDisplayMode(1) };
+    m_window = createWindow("android", displayMode->w, displayMode->h, SDL_WINDOW_OPENGL);
+#endif
+
+    createGLContext();
+
+    glEnable(GL_DEPTH_TEST);
+    openGLCheck();
+
+    glEnable(GL_BLEND);
+    openGLCheck();
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    openGLCheck();
+
+    glGenVertexArrays(1, &m_verticesArray);
+    openGLCheck();
+
+    glBindVertexArray(m_verticesArray);
+    openGLCheck();
+
+    m_audioSpec.freq = 48000;
+    m_audioSpec.format = SDL_AUDIO_S16LSB;
+    m_audioSpec.channels = 2;
+    m_audioSpec.samples = 1024;
+    m_audioSpec.callback = audioCallback;
+    m_audioSpec.userdata = this;
+
+    std::string defaultAudioDeviceName{};
+    const int numAudioDevices{ SDL_GetNumAudioDevices(0) };
+    if (numAudioDevices > 0)
+        defaultAudioDeviceName = SDL_GetAudioDeviceName(numAudioDevices - 1, 0);
+
+    m_audioDevice = SDL_OpenAudioDevice(
+        defaultAudioDeviceName.c_str(), 0, &m_audioSpec, &m_audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+    if (m_audioDevice == 0)
+        throw std::runtime_error{ "Error : EngineImpl::initialize : failed open audio device: "s +
+                                  SDL_GetError() };
+
+    std::cout << "audio device selected: "sv << defaultAudioDeviceName << '\n'
+              << "freq: "sv << m_audioSpec.freq << '\n'
+              << "format: "sv << m_audioSpec.format << '\n'
+              << "channels: "sv << static_cast<int>(m_audioSpec.channels) << '\n'
+              << "samples: "sv << m_audioSpec.samples << '\n'
+              << std::flush;
+
+    SDL_PlayAudioDevice(m_audioDevice);
+
+    recompileShaders();
+    SDL_GL_SetSwapInterval(1);
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ( void )io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
+#ifdef __APPLE__
+    const char* glsl_version = "#version 150";
+#else
+    const char* glsl_version = "#version 300 es";
+#endif
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    return "";
+}
+
+void EngineImpl::uninitialize() {
+    glDeleteVertexArrays(1, &m_verticesArray);
+    openGLCheck();
+
+    m_shaderProgram.clear();
+    m_shaderProgramWithView.clear();
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+
+    if (m_glContext) SDL_GL_DeleteContext(m_glContext);
+    if (m_window) SDL_DestroyWindow(m_window);
+
+    SDL_CloseAudioDevice(m_audioDevice);
+    SDL_Quit();
+}
+
+bool EngineImpl::readInput(Event& event) {
+    SDL_Event sdlEvent;
+    if (SDL_PollEvent(&sdlEvent)) {
+        ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
+
+        if (sdlEvent.type == SDL_EVENT_QUIT) {
+            event.type = Event::Type::turn_off;
+            return true;
+        }
+
+        if (sdlEvent.type == SDL_EVENT_KEY_DOWN || sdlEvent.type == SDL_EVENT_KEY_UP) {
+            if (auto e{ checkKeyboardInput(sdlEvent) }) {
+                event = *e;
+                return true;
+            }
+        }
+
+        if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+            sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_UP || sdlEvent.type == SDL_EVENT_MOUSE_MOTION ||
+            sdlEvent.type == SDL_EVENT_MOUSE_WHEEL) {
+            if (auto e{ checkMouseInput(sdlEvent) }) {
+                event = *e;
+                return true;
+            }
+        }
+
+        if (sdlEvent.type == SDL_EVENT_WINDOW_RESIZED) {
+            event.type = Event::Type::window_resized;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void EngineImpl::swapBuffers() {
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    int width{}, height{};
+    SDL_GetWindowSizeInPixels(m_window, &width, &height);
+    glViewport(0, 0, width, height);
+    openGLCheck();
+
+    SDL_GL_SwapWindow(m_window);
+
+    glClearColor(0.0f, 0.0f, 0.f, 1.f);
+    openGLCheck();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    openGLCheck();
+}
+
+void EngineImpl::recompileShaders() {
+#ifndef __ANDROID__
+    m_shaderProgram.recompileShaders(
+        HotReloadProvider::getInstance().getPath("vertex_shader_without_view"),
+        HotReloadProvider::getInstance().getPath("fragment_shader"));
+
+    m_shaderProgramWithView.recompileShaders(
+        HotReloadProvider::getInstance().getPath("vertex_shader_with_view"),
+        HotReloadProvider::getInstance().getPath("fragment_shader"));
+#else
+    m_shaderProgram.recompileShaders("data/shaders/vertex_shader_without_view.vert",
+                                     "data/shaders/fragment_shader.frag");
+
+    m_shaderProgramWithView.recompileShaders("data/shaders/vertex_shader_with_view.vert",
+                                             "data/shaders/fragment_shader.frag");
+#endif
+    m_program.get().use();
+}
+
+void EngineImpl::render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint16_t>& indexBuffer,
+                        const Texture& texture) {
+    m_program.get().use();
+    m_program.get().setUniform("texSampler", texture);
+
+    texture.bind();
+    vertexBuffer.bind();
+    indexBuffer.bind();
+
+    glEnableVertexAttribArray(0);
+    openGLCheck();
+
+    glEnableVertexAttribArray(1);
+    openGLCheck();
+
+    glEnableVertexAttribArray(2);
+    openGLCheck();
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
+    openGLCheck();
+
+    glVertexAttribPointer(1,
+                          2,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(Vertex2),
+                          reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
+    openGLCheck();
+
+    glVertexAttribPointer(2,
+                          4,
+                          GL_UNSIGNED_BYTE,
+                          GL_FALSE,
+                          sizeof(Vertex2),
+                          reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
+    openGLCheck();
+
+    glDrawElements(
+        GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_SHORT, nullptr);
+    openGLCheck();
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+}
+
+void EngineImpl::render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture) {
+    m_program.get().use();
+    m_program.get().setUniform("texSampler", texture);
+
+    texture.bind();
+    vertexBuffer.bind();
+    indexBuffer.bind();
+
+    glEnableVertexAttribArray(0);
+    openGLCheck();
+
+    glEnableVertexAttribArray(1);
+    openGLCheck();
+
+    glEnableVertexAttribArray(2);
+    openGLCheck();
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2), nullptr);
+    openGLCheck();
+
+    glVertexAttribPointer(1,
+                          2,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(Vertex2),
+                          reinterpret_cast<const GLvoid*>(offsetof(Vertex2, texX)));
+    openGLCheck();
+
+    glVertexAttribPointer(2,
+                          4,
+                          GL_UNSIGNED_BYTE,
+                          GL_FALSE,
+                          sizeof(Vertex2),
+                          reinterpret_cast<const GLvoid*>(offsetof(Vertex2, rgba)));
+    openGLCheck();
+
+    glDrawElements(
+        GL_TRIANGLES, static_cast<GLsizei>(indexBuffer.size()), GL_UNSIGNED_INT, nullptr);
+    openGLCheck();
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+}
+
+void EngineImpl::render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture,
+                        const glm::mat3& matrix) {
+    m_program.get().use();
+    m_program.get().setUniform("matrix", matrix);
+    render(vertexBuffer, indexBuffer, texture);
+}
+
+void EngineImpl::render(const VertexBuffer<Vertex2>& vertexBuffer,
+                        const IndexBuffer<std::uint32_t>& indexBuffer,
+                        const Texture& texture,
+                        const glm::mat3& matrix,
+                        const View& view) {
+    ShaderProgram& lastProgram{ m_program.get() };
+    m_program = m_shaderProgramWithView;
+    m_program.get().use();
+    m_program.get().setUniform("viewMatrix", view.getViewMatrix());
+    render(vertexBuffer, indexBuffer, texture, matrix);
+    m_program = lastProgram;
+}
+
+void EngineImpl::render(const Sprite& sprite) {
+    m_program.get().use();
+    m_program.get().setUniform("matrix", sprite.getResultMatrix());
+
+    VertexBuffer vertexBuffer{ sprite.getVertices() };
+    IndexBuffer indexBuffer{ sprite.getIndices() };
+
+    render(vertexBuffer, indexBuffer, sprite.getTexture());
+}
+
+void EngineImpl::render(const Sprite& sprite, const View& view) {
+    ShaderProgram& lastProgram{ m_program.get() };
+    m_program = m_shaderProgramWithView;
+    m_program.get().use();
+    m_program.get().setUniform("viewMatrix", view.getViewMatrix());
+    render(sprite);
+    m_program = lastProgram;
+}
+
+void EngineImpl::audioCallback(void* engine_ptr, std::uint8_t* stream, int streamSize) {
+    std::lock_guard lock{ g_audioMutex };
+    auto engine{ static_cast<EngineImpl*>(engine_ptr) };
+
+    std::fill_n(stream, streamSize, '\0');
+
+    for (Audio& sound : engine->m_sounds) {
+        if (sound.m_isPlaying) {
+            std::uint32_t rest{ sound.m_size - sound.m_currentPos };
+            std::uint8_t* current_buf{ sound.m_start + sound.m_currentPos };
+
+            if (rest <= static_cast<std::uint32_t>(streamSize)) {
+                SDL_MixAudioFormat(
+                    stream, current_buf, engine->m_audioSpec.format, rest, SDL_MIX_MAXVOLUME);
+                sound.m_currentPos += rest;
+            }
+            else {
+                SDL_MixAudioFormat(
+                    stream, current_buf, engine->m_audioSpec.format, streamSize, SDL_MIX_MAXVOLUME);
+                sound.m_currentPos += streamSize;
+            }
+
+            if (sound.m_currentPos == sound.m_size) {
+                if (sound.m_isLooped)
+                    sound.m_currentPos = 0;
+                else
+                    sound.m_isPlaying = false;
+            }
+        }
+    }
+}
 
 static bool g_alreadyExist{ false };
 static EnginePtr g_engine{};
@@ -1035,6 +1063,52 @@ void destroyEngine(IEngine* e) {
 const EnginePtr& getEngineInstance() {
     if (!g_alreadyExist) throw std::runtime_error{ "Error : engine not exist"s };
     return g_engine;
+}
+
+Audio::Audio(const fs::path& path) {
+    SDL_RWops* file{ SDL_RWFromFile(path.c_str(), "rb") };
+    if (file == nullptr) throw std::runtime_error{ "Error : Audio : failed read file"s };
+
+    SDL_AudioSpec fileAudioSpec;
+    if (SDL_LoadWAV_RW(file, 1, &fileAudioSpec, &m_start, &m_size) == nullptr)
+        throw std::runtime_error{ "Error : Audio : failed load wav"s };
+
+    auto& engine{ dynamic_cast<EngineImpl&>(*getEngineInstance().get()) };
+    auto& requiredAudioSpec{ engine.m_audioSpec };
+
+    if (engine.m_audioSpec.freq != fileAudioSpec.freq ||
+        engine.m_audioSpec.format != fileAudioSpec.format ||
+        engine.m_audioSpec.channels != fileAudioSpec.channels) {
+        std::uint8_t* newStart{};
+        int newSize{};
+        int convertStatus{ SDL_ConvertAudioSamples(fileAudioSpec.format,
+                                                   fileAudioSpec.channels,
+                                                   fileAudioSpec.freq,
+                                                   m_start,
+                                                   m_size,
+                                                   requiredAudioSpec.format,
+                                                   requiredAudioSpec.channels,
+                                                   requiredAudioSpec.freq,
+                                                   &newStart,
+                                                   &newSize) };
+        if (convertStatus != 0) throw std::runtime_error{ "Error : Audio: failed convert audio"s };
+        SDL_free(m_start);
+        m_start = newStart;
+        m_size = newSize;
+    }
+    std::lock_guard lock{ g_audioMutex };
+    engine.m_sounds.emplace_back(*this);
+}
+
+Audio::~Audio() {
+    if (m_start) SDL_free(m_start);
+}
+
+void Audio::play(bool isLooped) {
+    std::lock_guard lock{ g_audioMutex };
+    m_currentPos = 0;
+    m_isPlaying = true;
+    m_isLooped = isLooped;
 }
 
 #ifndef __ANDROID__

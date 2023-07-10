@@ -33,7 +33,6 @@ set(Sources
         src/view.cxx
         src/structures.cxx)
 
-
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     add_subdirectory(${SDL3_SRC_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}/SDL_${ANDROID_ABI})
