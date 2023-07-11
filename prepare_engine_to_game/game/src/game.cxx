@@ -42,8 +42,9 @@ private:
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
 
-    Position firstXY{};
-    Position secondXY{};
+    Rectangle rectMap{};
+    Rectangle rectGetOut{};
+    Rectangle rectDig{};
 
 public:
     PirateGame() = default;
@@ -407,14 +408,40 @@ public:
             player->resizeUpdate();
             break;
 
-        case Event::Type::touch_down: {
-            Rectangle rect{ .xy = { firstXY.x,
-                                    getEngineInstance()->getWindowSize().height - secondXY.y },
-                            .wh = { secondXY.x - firstXY.x, secondXY.y - firstXY.y } };
-            if (rect.contains(event.touch.pos)) {
+        case Event::Type::touch_down:
+            if (rectMap.contains(event.touch.pos)) {
                 if (!map->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
+                break;
             }
-        } break;
+
+            if (rectGetOut.contains(event.touch.pos)) {
+                if (ship->isInteract() && m_isOnShip) {
+                    m_isOnShip = false;
+                    player->setPosition(
+                        { ship->getPosition().x -
+                              10.f * std::sin(ship->getSprite().getRotate().getInRadians()),
+                          ship->getPosition().y +
+                              10.f * std::cos(ship->getSprite().getRotate().getInRadians()) });
+                    ship->stopMove();
+                    ship->stopRotateRight();
+                    ship->stopRotateLeft();
+                }
+                else if (player->isNearShip()) {
+                    m_isOnShip = true;
+                    player->stopMoveDown();
+                    player->stopMoveRight();
+                    player->stopMoveLeft();
+                    player->stopMoveUp();
+                }
+                break;
+            }
+
+            if (rectDig.contains(event.touch.pos) && !m_isOnShip) {
+                player->tryDig();
+                break;
+            }
+
+            break;
 
         case Event::Type::touch_motion:
             if (event.touch.id == 0) {
@@ -541,19 +568,47 @@ public:
         ImGui::PopItemWidth();
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 60, ImGui::GetIO().DisplaySize.y - 210));
+        ImGui::SetNextWindowPos(
+            ImVec2(ImGui::GetIO().DisplaySize.x - 60, ImGui::GetIO().DisplaySize.y - 210));
 
         ImGui::Begin("Menu",
                      nullptr,
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                          ImGuiWindowFlags_NoBackground);
-        if (ImGui::Button("Map", { 50, 50 })) {
-            firstXY = { ImGui::GetItemRectMin().x, ImGui::GetItemRectMin().y };
-            secondXY = { ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y };
+        ImGui::Button("Map", { 50, 50 });
+        {
+            static auto firstXY{ ImGui::GetItemRectMin() };
+            static auto secondXY{ ImGui::GetItemRectMax() };
+
+            rectMap.xy.x = firstXY.x;
+            rectMap.xy.y = getEngineInstance()->getWindowSize().height - secondXY.y;
+            rectMap.wh.width = secondXY.x - firstXY.x;
+            rectMap.wh.height = secondXY.y - firstXY.y;
         }
-        if (ImGui::Button("Exit", { 50, 50 })) {}
-        if (ImGui::Button("Dig", { 50, 50 })) {}
+
+        ImGui::Button("Exit", { 50, 50 });
+        {
+            static auto firstXY{ ImGui::GetItemRectMin() };
+            static auto secondXY{ ImGui::GetItemRectMax() };
+
+            rectGetOut.xy.x = firstXY.x;
+            rectGetOut.xy.y = getEngineInstance()->getWindowSize().height - secondXY.y;
+            rectGetOut.wh.width = secondXY.x - firstXY.x;
+            rectGetOut.wh.height = secondXY.y - firstXY.y;
+        }
+
+        ImGui::Button("Dig", { 50, 50 });
+        {
+            static auto firstXY{ ImGui::GetItemRectMin() };
+            static auto secondXY{ ImGui::GetItemRectMax() };
+
+            rectDig.xy.x = firstXY.x;
+            rectDig.xy.y = getEngineInstance()->getWindowSize().height - secondXY.y;
+            rectDig.wh.width = secondXY.x - firstXY.x;
+            rectDig.wh.height = secondXY.y - firstXY.y;
+        }
+
         ImGui::End();
     }
 
