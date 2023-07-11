@@ -77,7 +77,7 @@ public:
                                     Size{ 50, 50 },
                                     Size{ 8000, 8000 });
         coin = std::make_unique<Texture>();
-        mainAudio = std::make_unique<Audio>("data/audio/m.wav");
+        mainAudio = std::make_unique<Audio>("data/audio/background.wav");
         coin->load("data/assets/coin.png");
         map->generateBottle();
         map->addIsland({ 400, 400 },
@@ -541,7 +541,7 @@ public:
         ImGui::PopItemWidth();
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 60, 0));
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 60, ImGui::GetIO().DisplaySize.y - 210));
 
         ImGui::Begin("Menu",
                      nullptr,

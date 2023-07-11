@@ -57,8 +57,10 @@ void Sprite::setPosition(Position position) {
 }
 
 Size Sprite::getSize() const noexcept {
-    return { m_size.width * m_scaleMatrix[0][0] * m_aspectMatrix[0][0],
-             m_size.height * m_scaleMatrix[1][1] * m_aspectMatrix[1][1] };
+    auto matrix{ getResultMatrix() };
+    auto vec3{ matrix * glm::vec3{ m_size.width, m_size.height, 1 } };
+
+    return { abs(vec3.x), abs(vec3.y) };
 }
 
 void Sprite::setScale(Scale scale) {

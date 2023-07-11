@@ -1,6 +1,7 @@
 #include "player.hxx"
 
-Player::Player(const fs::path& texturePath, Size size) : m_sprite{ size } {
+Player::Player(const fs::path& texturePath, Size size)
+    : m_sprite{ size }, m_digAudio{ std::make_unique<Audio>("data/audio/dig.wav") } {
     m_textures["back"][0].load("data/assets/pirate/back/back_standing.png");
     m_textures["back"][1].load("data/assets/pirate/back/back_walking_a.png");
     m_textures["back"][2].load("data/assets/pirate/back/back_walking_b.png");
@@ -105,7 +106,10 @@ void Player::update(std::chrono::microseconds timeElapsed) {
 
 const Sprite& Player::getSprite() const noexcept { return m_sprite; }
 
-void Player::tryDig() { m_isDigging = true; }
+void Player::tryDig() {
+    m_isDigging = true;
+    m_digAudio->play();
+}
 
 bool Player::isDigging() const noexcept { return m_isDigging; }
 void Player::stopDig() { m_isDigging = false; }

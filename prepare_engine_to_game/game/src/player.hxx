@@ -2,6 +2,8 @@
 #define ENGINE_PREPARE_TO_GAME_PLAYER_HXX
 
 #include <array>
+#include <audio.hxx>
+#include <memory>
 #include <sprite.hxx>
 #include <structures.hxx>
 #include <unordered_map>
@@ -28,6 +30,8 @@ private:
     bool m_isNearShip{};
 
     inline static constexpr float m_speed{ 35.0f };
+
+    std::unique_ptr<Audio> m_digAudio{};
 
     int m_money{};
 
