@@ -502,12 +502,20 @@ static std::optional<Event> checkMouseInput(SDL_Event& sdlEvent) {
 
 static std::optional<Event> checkTouchInput(SDL_Event& sdlEvent) {
     Event event{};
+
+    static float dx{};
+    static float dy{};
+
     switch (sdlEvent.type) {
     case SDL_EVENT_FINGER_DOWN:
         event.type = Event::Type::touch_down;
+        dx = sdlEvent.tfinger.x * getEngineInstance()->getWindowSize().width;
+        dy = (1.0f - sdlEvent.tfinger.y) * getEngineInstance()->getWindowSize().height;
         break;
     case SDL_EVENT_FINGER_UP:
         event.type = Event::Type::touch_up;
+        dx = 0;
+        dy = 0;
         break;
     case SDL_EVENT_FINGER_MOTION:
         event.type = Event::Type::touch_motion;
@@ -516,8 +524,13 @@ static std::optional<Event> checkTouchInput(SDL_Event& sdlEvent) {
         event.type = Event::Type::not_event;
     }
 
-    event.touch.pos.x = sdlEvent.tfinger.x;
-    event.touch.pos.y = sdlEvent.tfinger.y;
+    event.touch.pos.x = sdlEvent.tfinger.x * getEngineInstance()->getWindowSize().width;
+    event.touch.pos.y = (1.0f - sdlEvent.tfinger.y) * getEngineInstance()->getWindowSize().height;
+
+    if (event.type == Event::Type::touch_motion) {
+        event.touch.dx = event.touch.pos.x - dx;
+        event.touch.dy = event.touch.pos.y - dy;
+    }
 
     if (event.type == Event::Type::not_event) return std::nullopt;
     return event;

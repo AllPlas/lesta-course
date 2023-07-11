@@ -52,6 +52,7 @@ public:
         delete player;
         delete map;
         delete coin;
+        delete audio;
     }
 
     void initialize() override {
@@ -401,8 +402,11 @@ public:
             player->resizeUpdate();
             break;
 
-        case Event::Type::touch_down:
-            if (event.touch.pos.y > getEngineInstance()->getWindowSize().height / 2) ship->move();
+        case Event::Type::touch_motion:
+            if (event.touch.dy > 20)
+                ship->move();
+            else
+                ship->stopMove();
             break;
 
         case Event::Type::touch_up:

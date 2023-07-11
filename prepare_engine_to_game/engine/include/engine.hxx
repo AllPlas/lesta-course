@@ -179,6 +179,8 @@ struct Event
     struct Touch
     {
         Position pos{};
+        float dx{};
+        float dy{};
     };
 
     Type type{ Type::not_event };
