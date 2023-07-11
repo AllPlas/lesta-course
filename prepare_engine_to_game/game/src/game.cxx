@@ -42,8 +42,12 @@ private:
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
 
+    Position firstXY{};
+    Position secondXY{};
+
 public:
     PirateGame() = default;
+    ~PirateGame() = default;
 
     PirateGame(const PirateGame& pg) = delete;
     PirateGame& operator=(const PirateGame& pg) = delete;
@@ -403,6 +407,15 @@ public:
             player->resizeUpdate();
             break;
 
+        case Event::Type::touch_down: {
+            Rectangle rect{ .xy = { firstXY.x,
+                                    getEngineInstance()->getWindowSize().height - secondXY.y },
+                            .wh = { secondXY.x - firstXY.x, secondXY.y - firstXY.y } };
+            if (rect.contains(event.touch.pos)) {
+                if (!map->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
+            }
+        } break;
+
         case Event::Type::touch_motion:
             if (event.touch.id == 0) {
                 if (m_isOnShip) {
@@ -536,7 +549,8 @@ public:
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                          ImGuiWindowFlags_NoBackground);
         if (ImGui::Button("Map", { 50, 50 })) {
-            if (!map->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
+            firstXY = { ImGui::GetItemRectMin().x, ImGui::GetItemRectMin().y };
+            secondXY = { ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y };
         }
         if (ImGui::Button("Exit", { 50, 50 })) {}
         if (ImGui::Button("Dig", { 50, 50 })) {}
