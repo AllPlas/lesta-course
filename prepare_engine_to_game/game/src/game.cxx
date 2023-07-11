@@ -571,12 +571,13 @@ public:
 #ifdef __ANDROID__
         ImGui::SetNextWindowPos(
             ImVec2(ImGui::GetIO().DisplaySize.x - 110, ImGui::GetIO().DisplaySize.y - 385));
-
         ImGui::Begin("Menu",
                      nullptr,
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                          ImGuiWindowFlags_NoBackground);
+        ImGui::SetWindowFontScale(2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.6f, 1.0f));
         ImGui::Button("Map", { 100, 100 });
         {
             static auto firstXY{ ImGui::GetItemRectMin() };
@@ -588,7 +589,7 @@ public:
             rectMap.wh.height = secondXY.y - firstXY.y;
         }
 
-        ImGui::Button("Exit", { 50, 50 });
+        ImGui::Button(m_isOnShip ? "Ashore" : "Onboard", { 100, 100 });
         {
             static auto firstXY{ ImGui::GetItemRectMin() };
             static auto secondXY{ ImGui::GetItemRectMax() };
@@ -599,7 +600,7 @@ public:
             rectGetOut.wh.height = secondXY.y - firstXY.y;
         }
 
-        ImGui::Button("Dig", { 50, 50 });
+        ImGui::Button("Dig", { 100, 100 });
         {
             static auto firstXY{ ImGui::GetItemRectMin() };
             static auto secondXY{ ImGui::GetItemRectMax() };
@@ -609,7 +610,7 @@ public:
             rectDig.wh.width = secondXY.x - firstXY.x;
             rectDig.wh.height = secondXY.y - firstXY.y;
         }
-
+        ImGui::PopStyleColor();
         ImGui::End();
 #endif
     }
