@@ -48,7 +48,7 @@ private:
 
 public:
     PirateGame() = default;
-    ~PirateGame() = default;
+    ~PirateGame() override = default;
 
     PirateGame(const PirateGame& pg) = delete;
     PirateGame& operator=(const PirateGame& pg) = delete;
@@ -568,15 +568,16 @@ public:
         ImGui::PopItemWidth();
         ImGui::End();
 
+#ifdef __ANDROID__
         ImGui::SetNextWindowPos(
-            ImVec2(ImGui::GetIO().DisplaySize.x - 60, ImGui::GetIO().DisplaySize.y - 210));
+            ImVec2(ImGui::GetIO().DisplaySize.x - 110, ImGui::GetIO().DisplaySize.y - 385));
 
         ImGui::Begin("Menu",
                      nullptr,
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                          ImGuiWindowFlags_NoBackground);
-        ImGui::Button("Map", { 50, 50 });
+        ImGui::Button("Map", { 100, 100 });
         {
             static auto firstXY{ ImGui::GetItemRectMin() };
             static auto secondXY{ ImGui::GetItemRectMax() };
@@ -610,6 +611,7 @@ public:
         }
 
         ImGui::End();
+#endif
     }
 
     void update() override {

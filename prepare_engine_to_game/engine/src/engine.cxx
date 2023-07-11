@@ -1,6 +1,3 @@
-//
-// Created by Алексей Крукович on 17.04.23.
-//
 #include "engine.hxx"
 
 #include <glm/glm.hpp>
@@ -509,9 +506,10 @@ static std::optional<Event> checkTouchInput(SDL_Event& sdlEvent) {
     case SDL_EVENT_FINGER_DOWN:
         event.type = Event::Type::touch_down;
         fingersMap[sdlEvent.tfinger.fingerId].first =
-            sdlEvent.tfinger.x * getEngineInstance()->getWindowSize().width;
+            sdlEvent.tfinger.x * static_cast<float>(getEngineInstance()->getWindowSize().width);
         fingersMap[sdlEvent.tfinger.fingerId].second =
-            (1.0f - sdlEvent.tfinger.y) * getEngineInstance()->getWindowSize().height;
+            (1.0f - sdlEvent.tfinger.y) *
+            static_cast<float>(getEngineInstance()->getWindowSize().height);
         break;
     case SDL_EVENT_FINGER_UP:
         event.type = Event::Type::touch_up;
@@ -524,8 +522,10 @@ static std::optional<Event> checkTouchInput(SDL_Event& sdlEvent) {
     }
 
     event.touch.id = sdlEvent.tfinger.fingerId;
-    event.touch.pos.x = sdlEvent.tfinger.x * getEngineInstance()->getWindowSize().width;
-    event.touch.pos.y = (1.0f - sdlEvent.tfinger.y) * getEngineInstance()->getWindowSize().height;
+    event.touch.pos.x =
+        sdlEvent.tfinger.x * static_cast<float>(getEngineInstance()->getWindowSize().width);
+    event.touch.pos.y = (1.0f - sdlEvent.tfinger.y) *
+                        static_cast<float>(getEngineInstance()->getWindowSize().height);
 
     if (event.type == Event::Type::touch_motion) {
         event.touch.dx = event.touch.pos.x - fingersMap[sdlEvent.tfinger.fingerId].first;
@@ -646,7 +646,7 @@ public:
     [[nodiscard]] int getAudioVolume() const noexcept override;
     void setAudioVolume(int audioVolume) override;
 
-    bool isFullscreen() const noexcept override;
+    [[nodiscard]] bool isFullscreen() const noexcept override;
     void setFullscreen(bool isFullscreen) override;
 
 private:
@@ -866,38 +866,41 @@ bool EngineImpl::readInput(Event& event) {
     if (SDL_PollEvent(&sdlEvent)) {
         ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
 
-        if (sdlEvent.type == SDL_EVENT_QUIT) {
+        switch (sdlEvent.type) {
+        case SDL_EVENT_QUIT:
             event.type = Event::Type::turn_off;
             return true;
-        }
 
-        if (sdlEvent.type == SDL_EVENT_KEY_DOWN || sdlEvent.type == SDL_EVENT_KEY_UP) {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP:
             if (auto e{ checkKeyboardInput(sdlEvent) }) {
                 event = *e;
                 return true;
             }
-        }
+            break;
 
-        if (sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
-            sdlEvent.type == SDL_EVENT_MOUSE_BUTTON_UP || sdlEvent.type == SDL_EVENT_MOUSE_MOTION ||
-            sdlEvent.type == SDL_EVENT_MOUSE_WHEEL) {
+        case SDL_EVENT_MOUSE_MOTION:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+        case SDL_EVENT_MOUSE_WHEEL:
             if (auto e{ checkMouseInput(sdlEvent) }) {
                 event = *e;
                 return true;
             }
-        }
+            break;
 
-        if (sdlEvent.type == SDL_EVENT_WINDOW_RESIZED) {
+        case SDL_EVENT_WINDOW_RESIZED:
             event.type = Event::Type::window_resized;
             return true;
-        }
 
-        if (sdlEvent.type == SDL_EVENT_FINGER_DOWN || sdlEvent.type == SDL_EVENT_FINGER_UP ||
-            sdlEvent.type == SDL_EVENT_FINGER_MOTION) {
+        case SDL_EVENT_FINGER_DOWN:
+        case SDL_EVENT_FINGER_UP:
+        case SDL_EVENT_FINGER_MOTION:
             if (auto e{ checkTouchInput(sdlEvent) }) {
                 event = *e;
                 return true;
             }
+            break;
         }
     }
 
