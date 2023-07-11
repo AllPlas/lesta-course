@@ -39,6 +39,8 @@ private:
 
     int m_framerate{ 150 };
 
+    inline static constexpr int s_deltaForTouches{ 50 };
+
 public:
     PirateGame() = default;
 
@@ -408,31 +410,68 @@ public:
 
         case Event::Type::touch_motion:
             if (event.touch.id == 0) {
-                switch (static_cast<int>(event.touch.dy)) {
-                case 30 ... INT_MAX:
-                    ship->move();
-                    break;
+                if (m_isOnShip) {
+                    switch (static_cast<int>(event.touch.dy)) {
+                    case s_deltaForTouches ... INT_MAX:
+                        ship->move();
+                        break;
 
-                default:
-                    ship->stopMove();
-                    break;
+                    default:
+                        ship->stopMove();
+                        break;
+                    }
+
+                    switch (static_cast<int>(event.touch.dx)) {
+                    case INT_MIN ... - s_deltaForTouches:
+                        ship->stopRotateRight();
+                        ship->rotateLeft();
+                        break;
+
+                    case s_deltaForTouches ... INT_MAX:
+                        ship->stopRotateLeft();
+                        ship->rotateRight();
+                        break;
+
+                    default:
+                        ship->stopRotateLeft();
+                        ship->stopRotateRight();
+                        break;
+                    }
                 }
+                else {
+                    switch (static_cast<int>(event.touch.dy)) {
+                    case s_deltaForTouches ... INT_MAX:
+                        player->stopMoveDown();
+                        player->moveUp();
+                        break;
 
-                switch (static_cast<int>(event.touch.dx)) {
-                case INT_MIN ... - 30:
-                    ship->stopRotateRight();
-                    ship->rotateLeft();
-                    break;
+                    case INT_MIN ... - s_deltaForTouches:
+                        player->stopMoveUp();
+                        player->moveDown();
+                        break;
 
-                case 30 ... INT_MAX:
-                    ship->stopRotateLeft();
-                    ship->rotateRight();
-                    break;
+                    default:
+                        player->stopMoveUp();
+                        player->stopMoveDown();
+                        break;
+                    }
 
-                default:
-                    ship->stopRotateLeft();
-                    ship->stopRotateRight();
-                    break;
+                    switch (static_cast<int>(event.touch.dx)) {
+                    case s_deltaForTouches ... INT_MAX:
+                        player->stopMoveLeft();
+                        player->moveRight();
+                        break;
+
+                    case INT_MIN ... - s_deltaForTouches:
+                        player->stopMoveRight();
+                        player->moveLeft();
+                        break;
+
+                    default:
+                        player->stopMoveLeft();
+                        player->stopMoveRight();
+                        break;
+                    }
                 }
             }
             break;
@@ -442,6 +481,10 @@ public:
                 ship->stopMove();
                 ship->stopRotateLeft();
                 ship->stopRotateRight();
+                player->stopMoveUp();
+                player->stopMoveLeft();
+                player->stopMoveRight();
+                player->stopMoveDown();
             }
             break;
 
@@ -488,6 +531,20 @@ public:
         ImGui::SetWindowFontScale(2.5f);
         ImGui::Text("%d", player->getMoney());
         ImGui::PopItemWidth();
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 60, 0));
+
+        ImGui::Begin("Menu",
+                     nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                         ImGuiWindowFlags_NoBackground);
+        if (ImGui::Button("Map", { 50, 50 })) {
+            if (!map->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
+        }
+        if (ImGui::Button("Exit", { 50, 50 })) {}
+        if (ImGui::Button("Dig", { 50, 50 })) {}
         ImGui::End();
     }
 
