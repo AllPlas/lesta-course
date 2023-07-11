@@ -28,6 +28,8 @@ private:
     int m_windowWidth{};
     int m_windowHeight{};
 
+    inline static Size s_originalWindowSize{};
+
     std::vector<Vertex2> m_vertices{};
     std::vector<uint16_t> m_indices{};
 
@@ -62,6 +64,8 @@ public:
     [[nodiscard]] const Texture& getTexture() const noexcept;
     [[nodiscard]] glm::mat3 getResultMatrix() const noexcept;
     [[nodiscard]] Rectangle getRectangle() const noexcept;
+
+    static void setOriginalSize(Size size);
 
 private:
     void initialize();

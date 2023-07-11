@@ -1,6 +1,7 @@
 #include <array>
 #include <chrono>
 #include <engine.hxx>
+#include <memory>
 #include <stdexcept>
 
 #include "config.hxx"
@@ -17,12 +18,16 @@ using namespace std::literals;
 class PirateGame final : public IGame
 {
 private:
-    Ship* ship{};
-    Player* player{};
-    Map* map{};
-    Texture* coin{};
+    inline static constexpr Size s_originalWindowSize{ 800, 600 };
+    inline static constexpr int s_deltaForTouches{ 50 };
 
-    Audio* audio{};
+    int m_framerate{ 150 };
+
+    std::unique_ptr<Ship> ship{};
+    std::unique_ptr<Player> player{};
+    std::unique_ptr<Map> map{};
+    std::unique_ptr<Texture> coin{};
+    std::unique_ptr<Audio> mainAudio{};
 
     Menu menu{};
 
@@ -37,10 +42,6 @@ private:
     bool m_isDebugMenuOn{ false };
     bool m_debugTankInfo{ false };
 
-    int m_framerate{ 150 };
-
-    inline static constexpr int s_deltaForTouches{ 50 };
-
 public:
     PirateGame() = default;
 
@@ -48,14 +49,6 @@ public:
     PirateGame& operator=(const PirateGame& pg) = delete;
     PirateGame(PirateGame&&) = delete;
     PirateGame& operator=(PirateGame&&) = delete;
-
-    ~PirateGame() noexcept override {
-        delete ship;
-        delete player;
-        delete map;
-        delete coin;
-        delete audio;
-    }
 
     void initialize() override {
         getEngineInstance()->initialize(R"(
@@ -66,19 +59,21 @@ public:
     "is_window_resizable": true
 }
 )");
+        Sprite::setOriginalSize(s_originalWindowSize);
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
-        ship = new Ship{ "data/assets/ship.png", { 66, 113 } };
-        player = new Player{ "data/assets/pirate/front/front_standing.png", { 30, 30 } };
-        map = new Map{ "data/assets/water.png",
-                       "data/assets/air.png",
-                       "data/assets/bottle.png",
-                       "data/assets/treasure.png",
-                       "data/assets/xmark.png",
-                       { 50, 50 },
-                       { 8000, 8000 } };
-        coin = new Texture{};
-        audio = new Audio{ "data/audio/m.wav" };
+        ship = std::make_unique<Ship>("data/assets/ship.png", Size{ 66, 113 });
+        player =
+            std::make_unique<Player>("data/assets/pirate/front/front_standing.png", Size{ 30, 30 });
+        map = std::make_unique<Map>("data/assets/water.png",
+                                    "data/assets/air.png",
+                                    "data/assets/bottle.png",
+                                    "data/assets/treasure.png",
+                                    "data/assets/xmark.png",
+                                    Size{ 50, 50 },
+                                    Size{ 8000, 8000 });
+        coin = std::make_unique<Texture>();
+        mainAudio = std::make_unique<Audio>("data/audio/m.wav");
         coin->load("data/assets/coin.png");
         map->generateBottle();
         map->addIsland({ 400, 400 },
@@ -249,7 +244,7 @@ public:
 
         Island::setIslandTiles(m_islandSprites);
         Island::setIslandPattern(m_charToIslandString);
-        audio->play(true);
+        mainAudio->play(true);
 
         map->resizeUpdate();
         ship->resizeUpdate();

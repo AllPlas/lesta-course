@@ -77,8 +77,9 @@ void Sprite::setRotate(float angle) {
     m_rotationMatrix[1][1] = std::cos(m_rotationAngle.getInRadians());
 
     updateWindowSize();
-    checkAspect({ 800, 600 });
-    auto aspectWH{ static_cast<float>(800) / 600.f };
+    checkAspect(s_originalWindowSize);
+
+    auto aspectWH{ s_originalWindowSize.width / s_originalWindowSize.height };
     m_aspectMatrix[1][1] *=
         1 + std::abs((aspectWH - 1) * pow(std::sin(m_rotationAngle.getInRadians()), 2));
     m_aspectMatrix[0][0] /=
@@ -125,26 +126,31 @@ void Sprite::initialize() {
     m_rotationMatrix[1][1] = 1.0f;
     m_rotationMatrix[2][2] = 1.0f;
 
-    m_vertices.push_back({ (-m_size.width / 2) / (m_windowWidth / 2.0f),
-                           (m_size.height / 2) / (m_windowHeight / 2.0f),
+    if (s_originalWindowSize.width == 0 || s_originalWindowSize.height == 0) {
+        s_originalWindowSize.width = getEngineInstance()->getWindowSize().width;
+        s_originalWindowSize.height = getEngineInstance()->getWindowSize().height;
+    }
+
+    m_vertices.push_back({ (-m_size.width / 2) / (s_originalWindowSize.width / 2.0f),
+                           (m_size.height / 2) / (s_originalWindowSize.height / 2.0f),
                            0.0,
                            0.0,
                            0 });
 
-    m_vertices.push_back({ (m_size.width / 2) / (m_windowWidth / 2.0f),
-                           (m_size.height / 2) / (m_windowHeight / 2.0f),
+    m_vertices.push_back({ (m_size.width / 2) / (s_originalWindowSize.width / 2.0f),
+                           (m_size.height / 2) / (s_originalWindowSize.height / 2.0f),
                            1.0,
                            0.0,
                            0 });
 
-    m_vertices.push_back({ (m_size.width / 2) / (m_windowWidth / 2.0f),
-                           (-m_size.height / 2) / (m_windowHeight / 2.0f),
+    m_vertices.push_back({ (m_size.width / 2) / (s_originalWindowSize.width / 2.0f),
+                           (-m_size.height / 2) / (s_originalWindowSize.height / 2.0f),
                            1.0,
                            1.0,
                            0 });
 
-    m_vertices.push_back({ (-m_size.width / 2) / (m_windowWidth / 2.0f),
-                           (-m_size.height / 2) / (m_windowHeight / 2.0f),
+    m_vertices.push_back({ (-m_size.width / 2) / (s_originalWindowSize.width / 2.0f),
+                           (-m_size.height / 2) / (s_originalWindowSize.height / 2.0f),
                            0.0,
                            1.0,
                            0 });
@@ -156,6 +162,8 @@ void Sprite::setTexture(Texture& texture) {
     if (m_hasTexture) throw std::runtime_error{ "Error : setTexture : The sprite has own texture" };
     m_texture = &texture;
 }
+
+void Sprite::setOriginalSize(Size size) { s_originalWindowSize = size; }
 
 std::optional<Rectangle> intersect(const Sprite& s1, const Sprite& s2) {
     return intersect(s1.getRectangle(), s2.getRectangle());
