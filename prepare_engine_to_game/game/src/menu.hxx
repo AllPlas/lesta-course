@@ -21,6 +21,9 @@ private:
     std::vector<const char*> m_videoModes{ "bordered", "fullscreen" };
     int m_selectedVideoMode{ getEngineInstance()->isFullscreen() ? 1 : 0 };
 
+    int m_framerate{ getEngineInstance()->getFramerate() };
+    bool m_isVSync{ getEngineInstance()->getVSync() };
+
 public:
     void render();
     [[nodiscard]] bool getActive() const noexcept { return m_isActive; }

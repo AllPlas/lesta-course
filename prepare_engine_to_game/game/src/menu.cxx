@@ -33,6 +33,11 @@ void Menu::render() {
             m_isRequiredAudioDevicesUpdate = false;
         }
 
+        if (ImGui::SliderInt("FPS", &m_framerate, 60, 300))
+            getEngineInstance()->setFramerate(m_framerate);
+
+        if (ImGui::Checkbox("VSync", &m_isVSync)) getEngineInstance()->setVSync(m_isVSync);
+
         if (ImGui::Combo("Select an audio device",
                          &m_selectedAudioDevice,
                          m_audioDevicesC.data(),
