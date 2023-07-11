@@ -1,3 +1,6 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-avoid-magic-numbers"
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-vararg"
 #include "menu.hxx"
 
 #include <imgui.h>
@@ -5,7 +8,7 @@
 #include "config.hxx"
 
 void Menu::render() {
-    if (m_isBindKey) {
+    if (m_isBindKey && m_bindingKey) {
         bindKey(m_keybindingMessage, *m_bindingKey);
         return;
     }
@@ -22,17 +25,18 @@ void Menu::render() {
             m_audioDevicesC.clear();
             for (auto& name : m_audioDevices)
                 m_audioDevicesC.push_back(name.c_str());
-            m_selectedAudioDevice = std::find(m_audioDevices.begin(),
-                                              m_audioDevices.end(),
-                                              getEngineInstance()->getCurrentAudioDeviceName()) -
-                                    m_audioDevices.begin();
+            m_selectedAudioDevice =
+                static_cast<int>(std::find(m_audioDevices.begin(),
+                                           m_audioDevices.end(),
+                                           getEngineInstance()->getCurrentAudioDeviceName()) -
+                                 m_audioDevices.begin());
             m_isRequiredAudioDevicesUpdate = false;
         }
 
         if (ImGui::Combo("Select an audio device",
                          &m_selectedAudioDevice,
                          m_audioDevicesC.data(),
-                         m_audioDevicesC.size())) {
+                         static_cast<int>(m_audioDevicesC.size()))) {
             getEngineInstance()->setAudioDevice(m_audioDevices.at(m_selectedAudioDevice));
         }
 
@@ -43,7 +47,7 @@ void Menu::render() {
         if (ImGui::Combo("Select a video mode",
                          &m_selectedVideoMode,
                          m_videoModes.data(),
-                         m_videoModes.size())) {
+                         static_cast<int>(m_videoModes.size()))) {
             getEngineInstance()->setFullscreen(m_selectedVideoMode);
         }
 
@@ -233,3 +237,5 @@ void Menu::bindKey(const std::string& keyName, Event::Keyboard::Key& bindingKey)
 
     ImGui::End();
 }
+
+#pragma clang diagnostic pop
