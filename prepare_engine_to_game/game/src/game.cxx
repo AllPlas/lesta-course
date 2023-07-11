@@ -248,6 +248,10 @@ public:
         Island::setIslandTiles(m_islandSprites);
         Island::setIslandPattern(m_charToIslandString);
         audio->play(true);
+
+        map->resizeUpdate();
+        ship->resizeUpdate();
+        player->resizeUpdate();
     }
 
     void onEvent(const Event& event) override {
@@ -403,14 +407,42 @@ public:
             break;
 
         case Event::Type::touch_motion:
-            if (event.touch.dy > 20)
-                ship->move();
-            else
-                ship->stopMove();
+            if (event.touch.id == 0) {
+                switch (static_cast<int>(event.touch.dy)) {
+                case 30 ... INT_MAX:
+                    ship->move();
+                    break;
+
+                default:
+                    ship->stopMove();
+                    break;
+                }
+
+                switch (static_cast<int>(event.touch.dx)) {
+                case INT_MIN ... - 30:
+                    ship->stopRotateRight();
+                    ship->rotateLeft();
+                    break;
+
+                case 30 ... INT_MAX:
+                    ship->stopRotateLeft();
+                    ship->rotateRight();
+                    break;
+
+                default:
+                    ship->stopRotateLeft();
+                    ship->stopRotateRight();
+                    break;
+                }
+            }
             break;
 
         case Event::Type::touch_up:
-            ship->stopMove();
+            if (event.touch.id == 0) {
+                ship->stopMove();
+                ship->stopRotateLeft();
+                ship->stopRotateRight();
+            }
             break;
 
         default:

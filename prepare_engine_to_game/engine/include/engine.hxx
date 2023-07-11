@@ -178,6 +178,7 @@ struct Event
 
     struct Touch
     {
+        std::size_t id{};
         Position pos{};
         float dx{};
         float dy{};
