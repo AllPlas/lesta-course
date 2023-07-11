@@ -646,6 +646,9 @@ public:
     [[nodiscard]] int getAudioVolume() const noexcept override;
     void setAudioVolume(int audioVolume) override;
 
+    bool isFullscreen() const noexcept override;
+    void setFullscreen(bool isFullscreen) override;
+
 private:
     static void initSDL() {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD |
@@ -1171,6 +1174,14 @@ void EngineImpl::setAudioVolume(int audioVolume) {
     if (audioVolume < 0 || audioVolume > 128)
         throw std::runtime_error{ "Error : setAudioVolume : volume should be in range [0, 128] "s };
     m_audioVolume = audioVolume;
+}
+
+bool EngineImpl::isFullscreen() const noexcept {
+    return SDL_WINDOW_FULLSCREEN & SDL_GetWindowFlags(m_window);
+}
+
+void EngineImpl::setFullscreen(bool isFullscreen) {
+    SDL_SetWindowFullscreen(m_window, isFullscreen ? SDL_TRUE : SDL_FALSE);
 }
 
 static bool g_alreadyExist{ false };

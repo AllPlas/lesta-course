@@ -17,8 +17,6 @@ void Menu::render() {
                      nullptr,
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-        ImGui::SliderFloat("Camera height", &Config::camera_height, 0.5f, 1.25f);
-
         if (m_isRequiredAudioDevicesUpdate) {
             m_audioDevices = getEngineInstance()->getAudioDeviceNames();
             m_audioDevicesC.clear();
@@ -41,6 +39,15 @@ void Menu::render() {
         if (ImGui::SliderInt("Audio volume", &m_audioVolume, 0, 128)) {
             getEngineInstance()->setAudioVolume(m_audioVolume);
         }
+
+        if (ImGui::Combo("Select a video mode",
+                         &m_selectedVideoMode,
+                         m_videoModes.data(),
+                         m_videoModes.size())) {
+            getEngineInstance()->setFullscreen(m_selectedVideoMode);
+        }
+
+        ImGui::SliderFloat("Camera height", &Config::camera_height, 0.5f, 1.3f);
 
         ImGui::PushID(0);
         ImGui::Text("Ship Move Key: %s", keyToStr(Config::ship_move_key).data());

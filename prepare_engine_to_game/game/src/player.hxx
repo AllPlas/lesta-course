@@ -1,6 +1,7 @@
 #ifndef ENGINE_PREPARE_TO_GAME_PLAYER_HXX
 #define ENGINE_PREPARE_TO_GAME_PLAYER_HXX
 
+#include <array>
 #include <sprite.hxx>
 #include <structures.hxx>
 #include <unordered_map>
@@ -11,7 +12,12 @@ private:
     Position m_position{};
     Position m_lastPosition{};
 
-    std::unordered_map<std::string, Texture> m_textures{};
+    std::unordered_map<std::string, std::array<Texture, 3>> m_textures{};
+    inline static constexpr float s_animBoost{ 8.0f };
+    float m_animUpIndex{};
+    float m_animLeftIndex{};
+    float m_animRightIndex{};
+    float m_animDownIndex{};
 
     bool m_isMoveUp{};
     bool m_isMoveLeft{};

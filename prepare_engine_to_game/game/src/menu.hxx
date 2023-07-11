@@ -18,6 +18,9 @@ private:
     bool m_isRequiredAudioDevicesUpdate{};
     int m_audioVolume{ getEngineInstance()->getAudioVolume() };
 
+    std::vector<const char*> m_videoModes{ "bordered", "fullscreen" };
+    int m_selectedVideoMode{ getEngineInstance()->isFullscreen() ? 1 : 0 };
+
 public:
     void render();
     [[nodiscard]] bool getActive() const noexcept { return m_isActive; }
