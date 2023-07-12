@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <sprite.hxx>
 
+#include "player.hxx"
+
 namespace fs = std::filesystem;
 
 class Ship final
@@ -36,8 +38,10 @@ private:
 
     Sprite m_sprite;
 
+    Player& m_player;
+
 public:
-    Ship(const fs::path& textureFilepath, Size size);
+    Ship(const fs::path& textureFilepath, Size size, Player& player);
 
     void move();
     void rotateLeft();
@@ -51,6 +55,7 @@ public:
     void setInteract(bool isInteract);
 
     Config& config() noexcept;
+    Player& getPlayer() noexcept;
 
     void resizeUpdate();
     void update(std::chrono::microseconds timeElapsed);

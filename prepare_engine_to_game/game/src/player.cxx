@@ -116,6 +116,10 @@ void Player::stopDig() { m_isDigging = false; }
 
 void Player::addMoney(int money) { m_money += money; }
 int Player::getMoney() const noexcept { return m_money; }
+void Player::clearMoney() { m_money = 0; }
 
 bool Player::isNearShip() const noexcept { return m_isNearShip; }
 void Player::setNearShip(bool nearShip) { m_isNearShip = nearShip; }
+
+bool Player::hasBottle() const noexcept { return m_hasBottle; }
+void Player::setBottle(bool hasBottle) { m_hasBottle = hasBottle; }

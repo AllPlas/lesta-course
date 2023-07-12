@@ -23,8 +23,8 @@ private:
 
     int m_framerate{ 150 };
 
-    std::unique_ptr<Ship> ship{};
     std::unique_ptr<Player> player{};
+    std::unique_ptr<Ship> ship{};
     std::unique_ptr<Map> map{};
     std::unique_ptr<Texture> coin{};
     std::unique_ptr<Audio> mainAudio{};
@@ -67,9 +67,9 @@ public:
         Sprite::setOriginalSize(s_originalWindowSize);
 
         ImGui::SetCurrentContext(getEngineInstance()->getImGuiContext());
-        ship = std::make_unique<Ship>("data/assets/ship.png", Size{ 66, 113 });
         player =
             std::make_unique<Player>("data/assets/pirate/front/front_standing.png", Size{ 30, 30 });
+        ship = std::make_unique<Ship>("data/assets/ship.png", Size{ 66, 113 }, *player.get());
         map = std::make_unique<Map>("data/assets/water.png",
                                     "data/assets/air.png",
                                     "data/assets/bottle.png",
@@ -80,7 +80,7 @@ public:
         coin = std::make_unique<Texture>();
         mainAudio = std::make_unique<Audio>("data/audio/background.wav");
         coin->load("data/assets/coin.png");
-        map->generateBottle();
+        map->generateBottles();
         map->addIsland({ 400, 400 },
                        { { "########SSSS###" },
                          { "######SSBGGGS##" },
@@ -326,7 +326,7 @@ public:
                 break;
             }
 
-            if (event.keyboard.key == Config::view_treasure_key && !map->hasBottle()) {
+            if (event.keyboard.key == Config::view_treasure_key && player->hasBottle()) {
                 m_viewOnTreasure = !m_viewOnTreasure;
                 break;
             }
@@ -410,7 +410,7 @@ public:
 
         case Event::Type::touch_down:
             if (rectMap.contains(event.touch.pos)) {
-                if (!map->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
+                if (player->hasBottle()) m_viewOnTreasure = !m_viewOnTreasure;
                 break;
             }
 

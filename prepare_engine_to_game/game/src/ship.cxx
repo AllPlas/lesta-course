@@ -2,7 +2,8 @@
 
 #include <algorithm>
 
-Ship::Ship(const fs::path& textureFilepath, Size size) : m_sprite{ textureFilepath, size } {}
+Ship::Ship(const fs::path& textureFilepath, Size size, Player& player)
+    : m_sprite{ textureFilepath, size }, m_player{ player } {}
 
 void Ship::move() { m_isMove = true; }
 
@@ -102,3 +103,5 @@ bool Ship::isInteract() const noexcept { return m_isInteract; }
 Position Ship::getPosition() const noexcept { return m_position; }
 
 void Ship::setInteract(bool isInteract) { m_isInteract = isInteract; }
+
+Player& Ship::getPlayer() noexcept { return m_player; }

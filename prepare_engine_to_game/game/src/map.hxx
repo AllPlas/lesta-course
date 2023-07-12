@@ -33,9 +33,7 @@ private:
     std::vector<Island> m_islands{};
     std::vector<Position> m_waterPositions{};
     std::vector<Position> m_airPositions{};
-
-    std::vector<Vertex2> m_grid{};
-    std::vector<std::uint32_t> m_indGrid{};
+    std::vector<Position> m_bottlePositions{};
 
     std::unique_ptr<VertexBuffer<Vertex2>> m_gridPtr{};
     std::unique_ptr<IndexBuffer<std::uint32_t>> m_idxGridPtr{};
@@ -43,7 +41,11 @@ private:
     std::array<std::unique_ptr<VertexBuffer<Vertex2>>, 5> m_islandVertexBuffers{};
     std::array<std::unique_ptr<IndexBuffer<std::uint32_t>>, 5> m_islandIndexBuffers{};
 
-    bool m_hasBottle{};
+    std::unique_ptr<VertexBuffer<Vertex2>> m_bottleVertexBuffer{};
+    std::unique_ptr<IndexBuffer<std::uint32_t>> m_bottleIndexBuffer{};
+
+    inline static constexpr int s_maxCountOfBottles{ 50 };
+    int m_countOfBottles{};
     bool m_isTreasureUnearthed{};
 
     Island* m_interactIsland{};
@@ -65,14 +67,16 @@ public:
     void interact(Ship& ship);
     void interact(Player& player);
 
-    void generateBottle();
+    void generateBottles();
     void generateTreasure();
 
     [[nodiscard]] const std::vector<Position>& getWaterPositions() const noexcept;
     [[nodiscard]] Sprite& getWaterSprite() noexcept;
-    [[nodiscard]] bool hasBottle() const noexcept;
     [[nodiscard]] bool isTreasureUnearthed() const noexcept;
     Treasure& getTreasure() noexcept;
+
+private:
+    void updateBottlePositions();
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_MAP_HXX

@@ -29,6 +29,8 @@ private:
     bool m_isDigging{};
     bool m_isNearShip{};
 
+    bool m_hasBottle{};
+
     inline static constexpr float m_speed{ 35.0f };
 
     std::unique_ptr<Audio> m_digAudio{};
@@ -66,9 +68,13 @@ public:
 
     void addMoney(int money);
     [[nodiscard]] int getMoney() const noexcept;
+    void clearMoney();
 
     [[nodiscard]] bool isNearShip() const noexcept;
     void setNearShip(bool nearShip);
+
+    [[nodiscard]] bool hasBottle() const noexcept;
+    void setBottle(bool hasBottle);
 };
 
 #endif // ENGINE_PREPARE_TO_GAME_PLAYER_HXX

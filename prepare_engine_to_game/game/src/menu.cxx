@@ -172,34 +172,25 @@ void Menu::render() {
     const float buttonWidthRatio = 0.3f;
     const float buttonHeightRatio = 0.1f;
 
-    // Получите размер окна ImGui
     ImVec2 windowSize = ImGui::GetWindowSize();
 
-    // Рассчитайте размеры кнопок относительно размера окна
     float buttonWidth = windowSize.x * buttonWidthRatio;
     float buttonHeight = windowSize.y * buttonHeightRatio;
 
-    // Рассчитайте промежуток между кнопками
     float buttonSpacing = (windowSize.y - (buttonHeight * 7)) / 2.0f - 10.f;
 
-    // Рассчитайте позицию по центру горизонтально
     float posX = (windowSize.x - buttonWidth) * 0.5f;
 
-    // Установите позицию курсора по вертикали перед первой кнопкой
     ImGui::SetCursorPosY(buttonSpacing);
 
-    // Установите позицию курсора по горизонтали перед каждой кнопкой
     ImGui::SetCursorPosX(posX);
 
-    // Отрисуйте кнопки
     if (ImGui::Button("Play", ImVec2(buttonWidth, buttonHeight))) { m_isActive = false; }
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + buttonHeight);
 
     ImGui::SetCursorPosX(posX);
 
-    if (ImGui::Button("Reset Progress", ImVec2(buttonWidth, buttonHeight))) {
-        // Действия при нажатии на кнопку 2
-    }
+    if (ImGui::Button("Reset Progress", ImVec2(buttonWidth, buttonHeight))) {}
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + buttonHeight);
 
     ImGui::SetCursorPosX(posX);
@@ -212,9 +203,7 @@ void Menu::render() {
 
     ImGui::SetCursorPosX(posX);
 
-    if (ImGui::Button("Exit", ImVec2(buttonWidth, buttonHeight))) {
-        // Действия при нажатии на кнопку 4
-    }
+    if (ImGui::Button("Exit", ImVec2(buttonWidth, buttonHeight))) {}
 
     ImGui::End();
 }
